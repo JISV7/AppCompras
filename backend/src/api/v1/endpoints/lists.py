@@ -1,26 +1,28 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import select
-from src.core.deps import SessionDep
+from src.core.deps import SessionDep, CurrentUser
 from src.models.shopping_list import ShoppingList, ListItem
 from src.schemas.shopping_list import ShoppingListCreate, ShoppingListRead, ListItemCreate
-
-# NOTE: In a real app, you would add a `get_current_user` dependency here 
-# to ensure users only see their own lists.
 
 router = APIRouter()
 
 @router.post("/", response_model=ShoppingListRead)
-async def create_list(list_in: ShoppingListCreate, db: SessionDep):
-    # Hardcoded user_id for demo purposes since we aren't enforcing auth headers in this snippet
-    # You should replace this with current_user.id
-    demo_user_uuid = uuid.UUID("00000000-0000-0000-0000-000000000000") 
-    
-    new_list = ShoppingList(**list_in.model_dump(), user_id=demo_user_uuid)
+async def create_list(
+    list_in: ShoppingListCreate, 
+    db: SessionDep, 
+    current_user: CurrentUser
+):
+    new_list = ShoppingList(**list_in.model_dump(), user_id=current_user.user_id)
     db.add(new_list)
     await db.commit()
     await db.refresh(new_list)
     return new_list
+
+@router.get("/", response_model=list[ShoppingListRead])
+async def get_my_lists(db: SessionDep, current_user: CurrentUser):
+    result = await db.execute(select(ShoppingList).where(ShoppingList.user_id == current_user.user_id))
+    return result.scalars().all()
 
 @router.get("/{list_id}", response_model=ShoppingListRead)
 async def get_list(list_id: uuid.UUID, db: SessionDep):

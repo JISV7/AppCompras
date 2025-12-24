@@ -1,7 +1,7 @@
 import httpx
 from typing import Optional
 
-OFF_API_URL = "https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+OFF_API_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
 
 async def fetch_product_from_off(barcode: str) -> Optional[dict]:
     async with httpx.AsyncClient() as client:
@@ -19,7 +19,7 @@ async def fetch_product_from_off(barcode: str) -> Optional[dict]:
                 "barcode": str(product.get("code", barcode)),
                 "name": product.get("product_name", "Unknown Product"),
                 "brand": product.get("brands", None),
-                "image_url": product.get("image_url", None),
+                "image_url": product.get("image_url", product.get("image_front_url")),                
                 "category": product.get("categories", "").split(",")[0] if product.get("categories") else None,
                 "data_source": "OFF"
             }
