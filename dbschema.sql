@@ -36,8 +36,7 @@ CREATE TABLE stores (
     store_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL, -- 'Farmatodo', 'Bio Mercado'
     address TEXT,
-    latitude DECIMAL(10, 8),
-    longitude DECIMAL(11, 8),
+    location GEOGRAPHY(POINT, 4326),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -114,3 +113,18 @@ WHERE
     pl.recorded_at > NOW() - INTERVAL '30 days'
 GROUP BY 
     p.barcode, p.name, p.image_url;
+
+-- INSERT INTO stores (name, address, location) 
+-- VALUES (
+--     'Farmatodo Las Chimeneas', 
+--     'Av. Bolivar Norte, Valencia', 
+--     ST_SetSRID(ST_MakePoint(-68.0053, 10.1989), 4326) -- Longitude first, then Latitude!
+-- );
+
+-- SELECT name, address 
+-- FROM stores 
+-- WHERE ST_DWithin(
+--     location, 
+--     ST_SetSRID(ST_MakePoint(-68.0053, 10.1989), 4326), 
+--     1000 -- Distance in meters
+-- );
