@@ -1,9 +1,11 @@
-import pytest
-from httpx import AsyncClient, ASGITransport
 from typing import AsyncGenerator
+
+import pytest
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text  # <--- Import text
-from src.main import app
+
 from src.core.database import engine  # <--- Make sure to import your engine
+from src.main import app
 
 
 # 1. New Fixture: Initialize Database Extension

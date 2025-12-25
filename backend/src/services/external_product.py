@@ -1,6 +1,7 @@
+from typing import Any, Dict, Optional
+
 import openfoodfacts
 from fastapi.concurrency import run_in_threadpool
-from typing import Optional, Dict, Any
 
 api = openfoodfacts.API(user_agent="ElPrecioJusto/1.0 (destructomax1@gmail.com)")
 

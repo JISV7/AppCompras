@@ -1,13 +1,15 @@
 import uuid
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
-from src.core.deps import SessionDep, CurrentUser
-from src.models.shopping_list import ShoppingList, ListItem
+
+from src.core.deps import CurrentUser, SessionDep
 from src.models.product import Product
+from src.models.shopping_list import ListItem, ShoppingList
 from src.schemas.shopping_list import (
+    ListItemCreate,
     ShoppingListCreate,
     ShoppingListRead,
-    ListItemCreate,
 )
 
 router = APIRouter()

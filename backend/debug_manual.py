@@ -1,6 +1,6 @@
 # Place this in C:\Users\destr\AppCompras\backend
-import sys
 import os
+import sys
 
 # Add current folder to path so we can import src
 sys.path.append(os.getcwd())

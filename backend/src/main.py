@@ -1,9 +1,11 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from contextlib import asynccontextmanager
-from src.core.config import settings
+
 from src.api.v1.api import api_router
+from src.core.config import settings
 from src.core.deps import SessionDep
 
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import select, desc
-from src.core.deps import SessionDep, CurrentUser
+from sqlalchemy import desc, select
+
+from src.core.deps import CurrentUser, SessionDep
 from src.models.price import PriceLog
 from src.models.product import Product
 from src.models.store import Store

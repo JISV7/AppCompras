@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Query
-from sqlalchemy import select, func
+from geoalchemy2.elements import WKTElement
+from sqlalchemy import func, select
+
 from src.core.deps import SessionDep
 from src.models.store import Store
-from src.schemas.store import StoreRead, StoreCreate
-from geoalchemy2.elements import WKTElement
+from src.schemas.store import StoreCreate, StoreRead
 
 router = APIRouter()
 

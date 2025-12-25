@@ -1,13 +1,14 @@
 from typing import Annotated, AsyncGenerator
+
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database import AsyncSessionLocal
 from src.core.config import settings
+from src.core.database import AsyncSessionLocal
 from src.models.user import User
 
 # Define the OAuth2 scheme

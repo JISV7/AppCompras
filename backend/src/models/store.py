@@ -1,8 +1,10 @@
 import uuid
-from sqlalchemy import String, Text, Column
+
+from geoalchemy2 import Geography
+from sqlalchemy import Column, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from geoalchemy2 import Geography
+
 from src.models.base import Base
 
 

@@ -1,5 +1,7 @@
 import uuid
+
 import pytest
+
 from tests.conftest import state
 
 random_id = uuid.uuid4().hex[:6]
