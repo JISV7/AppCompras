@@ -6,19 +6,21 @@ from src.core.config import settings
 from src.api.v1.api import api_router
 from src.core.deps import SessionDep
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
 
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace "*" with specific domains
+    allow_origins=["*"],  # In production, replace "*" with specific domains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,9 +28,11 @@ app.add_middleware(
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+
 @app.get("/")
 async def root():
     return {"message": "Smart Budget API is running"}
+
 
 @app.get("/health", status_code=200)
 async def health_check(db: SessionDep, response: Response):

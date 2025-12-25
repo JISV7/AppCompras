@@ -1,6 +1,6 @@
 from typing import Optional
-from pydantic import BaseModel
 from src.schemas.common import BaseSchema
+
 
 class ProductCreate(BaseSchema):
     barcode: str
@@ -8,6 +8,7 @@ class ProductCreate(BaseSchema):
     brand: Optional[str] = None
     category: Optional[str] = None
     image_url: Optional[str] = None
+
 
 class ProductRead(ProductCreate):
     data_source: str

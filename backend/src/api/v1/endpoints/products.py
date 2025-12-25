@@ -7,8 +7,9 @@ from src.services.external_product import fetch_product_from_off
 
 router = APIRouter()
 
+
 @router.get("/{barcode}", response_model=ProductRead)
-async def get_product(barcode: str, db: SessionDep, current_user: CurrentUser):    
+async def get_product(barcode: str, db: SessionDep, current_user: CurrentUser):
     result = await db.execute(select(Product).where(Product.barcode == barcode))
     product = result.scalars().first()
 
@@ -16,7 +17,7 @@ async def get_product(barcode: str, db: SessionDep, current_user: CurrentUser):
         return product
 
     external_data = await fetch_product_from_off(barcode)
-    
+
     if not external_data:
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -25,19 +26,20 @@ async def get_product(barcode: str, db: SessionDep, current_user: CurrentUser):
     db.add(new_product)
     await db.commit()
     await db.refresh(new_product)
-    
+
     return new_product
+
 
 @router.post("/", response_model=ProductRead)
 async def create_product(
-    product_in: ProductCreate, 
-    db: SessionDep, 
-    current_user: CurrentUser
+    product_in: ProductCreate, db: SessionDep, current_user: CurrentUser
 ):
     # Check if exists
-    existing = await db.execute(select(Product).where(Product.barcode == product_in.barcode))
+    existing = await db.execute(
+        select(Product).where(Product.barcode == product_in.barcode)
+    )
     if existing.scalars().first():
-         raise HTTPException(status_code=400, detail="Product already exists")
+        raise HTTPException(status_code=400, detail="Product already exists")
 
     db_product = Product(**product_in.model_dump())
     db.add(db_product)

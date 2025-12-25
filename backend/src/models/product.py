@@ -1,9 +1,8 @@
 import datetime
-import uuid
-from sqlalchemy import String, DECIMAL, ForeignKey, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column
 from src.models.base import Base
+
 
 class Product(Base):
     __tablename__ = "products"
@@ -14,4 +13,6 @@ class Product(Base):
     category: Mapped[str | None] = mapped_column(String(50))
     image_url: Mapped[str | None] = mapped_column(String)
     data_source: Mapped[str] = mapped_column(String(20), default="USER")
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now()
+    )
