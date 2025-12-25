@@ -1,27 +1,40 @@
-import httpx
-from typing import Optional
+import openfoodfacts
+from fastapi.concurrency import run_in_threadpool
+from typing import Optional, Dict, Any
 
-OFF_API_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+api = openfoodfacts.API(user_agent="ElPrecioJusto/1.0 (destructomax1@gmail.com)")
 
-async def fetch_product_from_off(barcode: str) -> Optional[dict]:
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(OFF_API_URL.format(barcode=barcode), timeout=5.0)
-            if response.status_code != 200:
-                return None
-            
-            data = response.json()
-            if data.get("status") != 1:
-                return None
+async def fetch_product_from_off(barcode: str) -> Optional[Dict[str, Any]]:
+    """
+    Fetches product metadata using the official openfoodfacts SDK.
+    """
+    try:
+        fields_needed = [
+            "code", 
+            "product_name", 
+            "brands", 
+            "categories", 
+            "image_url", 
+            "image_front_url"
+        ]
 
-            product = data.get("product", {})
-            return {
-                "barcode": str(product.get("code", barcode)),
-                "name": product.get("product_name", "Unknown Product"),
-                "brand": product.get("brands", None),
-                "image_url": product.get("image_url", product.get("image_front_url")),                
-                "category": product.get("categories", "").split(",")[0] if product.get("categories") else None,
-                "data_source": "OFF"
-            }
-        except Exception:
+        product_data = await run_in_threadpool(
+            api.product.get, 
+            barcode, 
+            fields=fields_needed
+        )
+
+        if not product_data:
             return None
+
+        return {
+            "barcode": str(product_data.get("code", barcode)),
+            "name": product_data.get("product_name", "Unknown Product"),
+            "brand": product_data.get("brands", None),
+            "image_url": product_data.get("image_url", product_data.get("image_front_url")),                
+            "category": product_data.get("categories", "").split(",")[0] if product_data.get("categories") else None,
+            "data_source": "OFF"
+        }
+
+    except Exception:
+        return None
