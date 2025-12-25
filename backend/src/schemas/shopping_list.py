@@ -1,5 +1,6 @@
 from typing import Optional, List
 from pydantic import BaseModel
+from uuid import UUID
 from src.schemas.common import BaseSchema
 
 # Item Schemas
@@ -8,7 +9,7 @@ class ListItemCreate(BaseSchema):
     quantity: int = 1
 
 class ListItemRead(BaseSchema):
-    item_id: str
+    item_id: UUID
     product_barcode: str
     quantity: int
     is_purchased: bool
@@ -20,7 +21,7 @@ class ShoppingListCreate(BaseSchema):
     currency: str = "USD"
 
 class ShoppingListRead(BaseSchema):
-    list_id: str
+    list_id: UUID
     name: str
     budget_limit: Optional[float]
     status: str
