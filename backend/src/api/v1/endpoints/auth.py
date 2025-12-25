@@ -23,6 +23,7 @@ async def register(user_in: UserCreate, db: SessionDep) -> Any:
     print(f"---> DEBUG: user_in.password type: {type(user_in.password)}")
     print(f"---> DEBUG: user_in.password value: {user_in.password}")
     hashed_pw = security.get_password_hash(user_in.password)
+    print(f"---> DEBUG: hashed_pw value: {hashed_pw}")
     user = User(
         email=user_in.email,
         username=user_in.username,

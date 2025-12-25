@@ -2,12 +2,14 @@ import uuid
 import pytest
 from tests.conftest import state
 
-random_email = f"tester_{uuid.uuid4().hex[:6]}@example.com"
+random_id = uuid.uuid4().hex[:6]
+random_email = f"tester_{random_id}@example.com"
+random_username = f"Test User {random_id}"
 
 @pytest.mark.asyncio
 async def test_register_user(client):
     response = await client.post("/api/v1/auth/register", json={
-        "username": "Test User",
+        "username": random_username,
         "email": random_email,
         "password": "strongpassword123"
     })

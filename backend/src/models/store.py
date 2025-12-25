@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy import String, Text, DECIMAL, Column
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from geoalchemy2 import Geometry
+from geoalchemy2 import Geography
 from src.models.base import Base
 
 class Store(Base):
@@ -12,5 +12,4 @@ class Store(Base):
     name: Mapped[str] = mapped_column(String(100), index=True)
     address: Mapped[str | None] = mapped_column(Text)
     
-    # Using Geometry(POINT, 4326) for WGS84 coordinates
-    location = Column(Geometry("POINT", srid=4326)) 
+    location = Column(Geography(geometry_type='POINT', srid=4326))

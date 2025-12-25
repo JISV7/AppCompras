@@ -1,3 +1,5 @@
+from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel, EmailStr
 from src.schemas.common import BaseSchema
 
@@ -7,7 +9,7 @@ class UserCreate(BaseSchema):
     password: str
 
 class UserRead(BaseSchema):
-    user_id: str
+    user_id: UUID
     username: str
     email: EmailStr
 

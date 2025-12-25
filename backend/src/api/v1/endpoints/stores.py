@@ -4,13 +4,11 @@ from src.core.deps import SessionDep
 from src.models.store import Store
 from src.schemas.store import StoreRead, StoreCreate
 from geoalchemy2.elements import WKTElement
-from geoalchemy2 import Geography
 
 router = APIRouter()
 
 @router.post("/", response_model=StoreRead)
 async def create_store(store_in: StoreCreate, db: SessionDep):
-    # Longitude first for PostGIS Point
     point = f"POINT({store_in.longitude} {store_in.latitude})"
     
     new_store = Store(
@@ -30,13 +28,14 @@ async def get_nearby_stores(
     lon: float, 
     radius_meters: int = Query(1000, ge=100, le=50000), 
 ):
-    user_location = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+    user_location = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326).cast(type_=Store.location.type)
     
     query = select(Store).where(
         func.ST_DWithin(
-            Store.location.cast(Geography),
-            user_location.cast(Geography), 
-            radius_meters
+            Store.location,
+            user_location,
+            radius_meters,
+            True
         )
     )
     

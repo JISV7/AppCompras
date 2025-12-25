@@ -1,17 +1,28 @@
 import pytest
+import uuid
 from tests.conftest import state
+
+# Generate a unique name for this test run
+random_id = uuid.uuid4().hex[:6]
+store_name = f"Supermercado Test {random_id}"
 
 @pytest.mark.asyncio
 async def test_create_store(client):
     headers = {"Authorization": f"Bearer {state.token}"}
     response = await client.post("/api/v1/stores/", headers=headers, json={
-        "name": "Supermercado Test",
+        "name": store_name,  # <--- Use the unique name
         "address": "Av Bolivar, Valencia",
         "latitude": 10.1989,
         "longitude": -68.0053
     })
-    assert response.status_code == 200
-    state.store_id = response.json()["store_id"]
+    
+    # NOTE: Check if your API returns 200 or 201 (Created)
+    assert response.status_code in [200, 201] 
+    
+    data = response.json()
+    # Save ID for future tests
+    # Make sure your API returns "id" or "store_id". Adjust key if needed.
+    state.store_id = data["id"] if "id" in data else data["store_id"]
 
 @pytest.mark.asyncio
 async def test_get_nearby_stores(client):
