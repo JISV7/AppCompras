@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CentimosVE Splash Screen</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Config -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#10b77f",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#10221c",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom utilities if absolutely needed, keeping it minimal */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Ensuring full height for mobile viewports */
+        .min-h-screen-safe {
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark transition-colors duration-300">
+<div class="relative flex min-h-screen-safe w-full flex-col overflow-hidden">
+<!-- Main Content: Centered Logo -->
+<main class="flex flex-col grow items-center justify-center p-6">
+<!-- Logo Container with Pulse Animation -->
+<div class="flex flex-col items-center justify-center gap-6 animate-pulse">
+<!-- Logo Icon Wrapper -->
+<div class="relative flex items-center justify-center">
+<!-- Decorative back splash for depth -->
+<div class="absolute inset-0 bg-primary/20 rounded-full blur-xl transform scale-150"></div>
+<!-- Icon Container -->
+<div class="relative flex h-32 w-32 items-center justify-center rounded-3xl bg-white dark:bg-[#1a3830] shadow-xl shadow-primary/10 ring-1 ring-black/5 dark:ring-white/5">
+<span class="material-symbols-outlined text-primary text-[64px]" style="font-variation-settings: 'FILL' 1, 'wght' 600;">
+                            savings
+                        </span>
+</div>
+</div>
+<!-- App Name -->
+<div class="text-center">
+<h1 class="font-display text-4xl font-bold tracking-tight text-[#0d1b17] dark:text-white">
+                        Centimos<span class="text-primary">VE</span>
+</h1>
+<p class="mt-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Smart Budgeting
+                    </p>
+</div>
+</div>
+</main>
+<!-- Footer: Attribution -->
+<footer class="w-full pb-8 pt-4">
+<div class="flex flex-col items-center justify-center gap-2 px-4">
+<p class="font-display text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-600">
+                    Powered by Smart Data
+                </p>
+<!-- Optional version number or subtle indicator -->
+<div class="h-1 w-12 rounded-full bg-gray-200 dark:bg-gray-800"></div>
+</div>
+</footer>
+</div>
+</body></html>

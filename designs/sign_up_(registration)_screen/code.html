@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CentimosVE Sign Up</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#10b77f",
+                        "primary-dark": "#0e8c61",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#10221c",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#183028",
+                        "text-main": "#0d1b17",
+                        "text-secondary": "#4c9a80",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.5rem", "full": "9999px" },
+                    boxShadow: {
+                        'subtle': '0 2px 8px -2px rgba(16, 183, 127, 0.15)',
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom floating label styles */
+        .floating-input-group {
+            position: relative;
+        }
+        .floating-input:focus ~ label,
+        .floating-input:not(:placeholder-shown) ~ label {
+            transform: translateY(-0.75rem) scale(0.85);
+            color: #10b77f;
+        }
+        /* Hide placeholder when not focused to ensure label behavior works with placeholder-shown */
+        .floating-input::placeholder {
+            color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased min-h-screen flex flex-col justify-between transition-colors duration-300">
+<!-- Header Section -->
+<header class="sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm">
+<div class="flex items-center justify-between p-4">
+<button class="text-text-main dark:text-white flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="w-10"><!-- Spacer for balance --></div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 w-full max-w-md mx-auto px-6 pb-8 flex flex-col">
+<!-- Logo / Branding Area -->
+<div class="mb-8 flex flex-col items-center text-center animate-fade-in-up">
+<div class="size-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 text-primary">
+<span class="material-symbols-outlined text-4xl">savings</span>
+</div>
+<h1 class="text-text-main dark:text-white text-3xl font-bold tracking-tight mb-2">Create Account</h1>
+<p class="text-text-secondary dark:text-gray-400">Join CentimosVE to start optimizing your budget.</p>
+</div>
+<!-- Form Section -->
+<form class="space-y-5" onsubmit="event.preventDefault();">
+<!-- Full Name Input -->
+<div class="floating-input-group relative">
+<input class="floating-input block px-4 pt-5 pb-2 w-full text-text-main dark:text-white bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary peer h-14 transition-all shadow-sm" id="fullname" placeholder="John Doe" type="text"/>
+<label class="absolute text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-4 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-85 peer-focus:-translate-y-3 peer-focus:text-primary pointer-events-none" for="fullname">Full Name</label>
+</div>
+<!-- Email Input -->
+<div class="floating-input-group relative">
+<input class="floating-input block px-4 pt-5 pb-2 w-full text-text-main dark:text-white bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary peer h-14 transition-all shadow-sm" id="email" placeholder="name@example.com" type="email"/>
+<label class="absolute text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-4 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-85 peer-focus:-translate-y-3 peer-focus:text-primary pointer-events-none" for="email">Email Address</label>
+</div>
+<!-- Password Input -->
+<div class="floating-input-group relative">
+<input class="floating-input block px-4 pt-5 pb-2 w-full text-text-main dark:text-white bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary peer h-14 transition-all shadow-sm pr-12" id="password" placeholder="Password" type="password"/>
+<label class="absolute text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-4 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-85 peer-focus:-translate-y-3 peer-focus:text-primary pointer-events-none" for="password">Password</label>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+<!-- Password Strength Indicators -->
+<div class="flex flex-wrap gap-3 px-1">
+<div class="flex items-center gap-1.5 transition-opacity duration-300">
+<div class="size-4 rounded-full bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-white font-bold">check</span>
+</div>
+<span class="text-xs text-text-secondary dark:text-gray-400 font-medium">8+ chars</span>
+</div>
+<div class="flex items-center gap-1.5 opacity-50 transition-opacity duration-300">
+<div class="size-4 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+<!-- Empty for unmet state -->
+</div>
+<span class="text-xs text-gray-400 dark:text-gray-500">1 number</span>
+</div>
+<div class="flex items-center gap-1.5 opacity-50 transition-opacity duration-300">
+<div class="size-4 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+<!-- Empty for unmet state -->
+</div>
+<span class="text-xs text-gray-400 dark:text-gray-500">1 symbol</span>
+</div>
+</div>
+<!-- Confirm Password Input -->
+<div class="floating-input-group relative">
+<input class="floating-input block px-4 pt-5 pb-2 w-full text-text-main dark:text-white bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary peer h-14 transition-all shadow-sm pr-12" id="confirm_password" placeholder="Confirm Password" type="password"/>
+<label class="absolute text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-4 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-85 peer-focus:-translate-y-3 peer-focus:text-primary pointer-events-none" for="confirm_password">Confirm Password</label>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" type="button">
+<span class="material-symbols-outlined text-xl">visibility_off</span>
+</button>
+</div>
+<!-- Primary Action Button -->
+<button class="w-full bg-primary hover:bg-primary-dark text-white font-semibold h-14 rounded-xl shadow-lg shadow-primary/30 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 mt-4">
+<span>Sign Up</span>
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</form>
+<!-- Divider -->
+<div class="relative py-6">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
+</div>
+<div class="relative flex justify-center text-sm">
+<span class="bg-background-light dark:bg-background-dark px-2 text-gray-500 dark:text-gray-400">Or continue with</span>
+</div>
+</div>
+<!-- Social Buttons -->
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center gap-2 h-12 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+<img alt="Google Logo" class="size-5" data-alt="Google G logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGLffORk6iPrL01y7QwiPGFD9YcOHpDnVeMk-EwbuZVUQajbMkeGRToAbOVYe2TKMqeCuQMQKQHP8NUJolNAXwl6PJ4wi737ySEgsy27o2RFyMjAbsYvcZgbaFeqVtwz4sCBgUIFD76pNsyw5lHETBsbCS9uAb2k8SQ3KvrwH50jpYUG3zrV1qk31kcoG8mVlBMjn28fwNaaZBZli8oHwnLTNOZGvs4rKcrtWfseYgQ3bmKnscKI5HTdQ2-aRa4H79C5p3kTNM3Leq"/>
+<span class="text-sm font-medium text-text-main dark:text-white">Google</span>
+</button>
+<button class="flex items-center justify-center gap-2 h-12 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-2xl text-black dark:text-white">ios</span>
+<span class="text-sm font-medium text-text-main dark:text-white">Apple</span>
+</button>
+</div>
+</main>
+<!-- Footer -->
+<footer class="p-6 text-center">
+<p class="text-sm text-gray-500 dark:text-gray-400">
+            Already have an account? 
+            <a class="text-primary hover:text-primary-dark font-semibold transition-colors" href="#">Log In</a>
+</p>
+</footer>
+</body></html>

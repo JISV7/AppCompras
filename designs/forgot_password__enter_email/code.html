@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CentimosVE - Forgot Password</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#10b77f",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#10221c",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', "Noto Sans", sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden transition-colors duration-200">
+<!-- TopAppBar -->
+<div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-50">
+<button aria-label="Go back" class="text-[#0d1b17] dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 24px;">arrow_back_ios_new</span>
+</button>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 flex flex-col items-center w-full max-w-md mx-auto">
+<!-- HeaderImage (Adapted for Illustration) -->
+<div class="@container w-full px-4 py-6">
+<div class="w-full flex justify-center">
+<!-- Using a div with background image as requested, but styled as a contained illustration -->
+<div class="w-48 h-48 bg-center bg-no-repeat bg-contain flex flex-col justify-end overflow-hidden" data-alt="Illustration of a secure lock with a keyhole representing password recovery" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuASTkR3df8KpUMIFHCBZ0sNJqymqBHziS7DXCPJnWSNJ4Wcj2BDMp_lgBcKQjF-arg8RNH9eJG19lMhIAvpYv5swI52wd6BnRmUibSq0jEHBLN0iZagpomtAZkntiePhtnHffZ0wOVL3IBwGgNWTKiejHvTH1kKfiKN2sRxPuRfoM-nPpmJDss9GCnX21lCZDelQ2r9R5eZAfK0OzCIsGrZ20FMraEdLpg6rEvKcoP8-jksUR3InbmV83Ut7Nh5DFgYlUjPAEHLXTTe");'>
+</div>
+</div>
+</div>
+<!-- HeadlineText -->
+<h1 class="text-[#0d1b17] dark:text-white tracking-tight text-[32px] font-bold leading-tight px-4 text-center pb-2 pt-2">
+                Forgot Password?
+            </h1>
+<!-- BodyText -->
+<p class="text-[#4b5563] dark:text-gray-300 text-base font-normal leading-normal pb-8 pt-1 px-8 text-center">
+                Don't worry! It happens. Please enter the email associated with your account.
+            </p>
+<!-- Spacing -->
+<div class="h-4 w-full"></div>
+<!-- Form Section -->
+<div class="w-full px-4 space-y-6">
+<!-- Floating Label Input -->
+<div class="relative">
+<input class="peer block w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-white/5 px-4 pb-3 pt-6 text-base text-[#0d1b17] dark:text-white focus:border-primary focus:ring-1 focus:ring-primary dark:focus:border-primary appearance-none transition-colors" id="email" placeholder=" " type="email"/>
+<label class="absolute left-4 top-4 z-10 origin-[0] -translate-y-3 scale-75 transform text-sm text-gray-500 dark:text-gray-400 duration-200 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 peer-focus:text-primary dark:peer-focus:text-primary pointer-events-none" for="email">
+                        Email Address
+                    </label>
+<!-- Optional Email Icon indicator -->
+<div class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+<span class="material-symbols-outlined" style="font-size: 20px;">mail</span>
+</div>
+</div>
+<!-- Primary Action Button -->
+<button class="w-full rounded-xl bg-primary py-4 text-base font-bold text-white shadow-md hover:bg-[#0ea06f] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span>Send Instructions</span>
+</button>
+</div>
+<!-- Footer / Help Link -->
+<div class="mt-auto py-8 text-center">
+<p class="text-sm text-gray-500 dark:text-gray-400">
+                    No access to email? <a class="font-medium text-primary hover:text-[#0ea06f] hover:underline" href="#">Contact Support</a>
+</p>
+</div>
+<div class="h-5 w-full bg-transparent"></div>
+</div>
+</div>
+</body></html>

@@ -5,25 +5,42 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorLight = '#10b77f'; // Primary green from design
+const tintColorDark = '#0d9466'; // Darker green from design
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#0d1b17', // Main text from design
+    textSecondary: '#4c9a80', // Secondary text from design
+    textMain: '#0d1b17', // Main text from design
+    textSub: '#4c9a80', // Sub text from design
+    background: '#f6f8f7', // Background from design
+    backgroundLight: '#f8fcfa', // Background from design
+    backgroundDark: '#10221c', // Dark background from design
     tint: tintColorLight,
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    primary: '#10b77f',
+    primaryDark: '#0e8c61', // Updated to match design
+    surfaceLight: '#ffffff',
+    surfaceDark: '#183028',
   },
   dark: {
     text: '#ECEDEE',
+    textMain: '#e0ece9', // Main text from design
+    textSub: '#a0b3ac', // Sub text from design
     background: '#151718',
+    backgroundLight: '#f8fcfa',
+    backgroundDark: '#10221c', // Dark background from design
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    primary: '#10b77f',
+    primaryDark: '#0a8f61', // Updated to match design
+    surfaceLight: '#ffffff',
+    surfaceDark: '#183028',
   },
 };
 
@@ -51,3 +68,12 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+// Border radius constants
+export const BorderRadius = {
+  DEFAULT: 8, // 0.5rem
+  lg: 16,     // 1rem
+  xl: 24,     // 1.5rem
+  '2xl': 32,  // 2rem
+  full: 9999, // Full rounded
+};
