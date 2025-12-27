@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Smart Budget Venezuela"
+    PROJECT_NAME: str = "Centimos App Venezuela"
     API_V1_STR: str = "/api/v1"
 
     # Database
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 28  # 1 week
 
     MAIL_USERNAME: str
     MAIL_PASSWORD: str

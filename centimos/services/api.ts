@@ -33,4 +33,14 @@ api.interceptors.response.use(
   }
 );
 
+export const getLatestExchangeRate = async () => {
+  try {
+    const response = await api.get('/exchange-rates/latest');
+    return response.data; // Returns { currency_code, rate_to_ves, source, ... }
+  } catch (error) {
+    console.error("Failed to fetch rate:", error);
+    return null; // Return null so the UI knows it failed (and can show fallback)
+  }
+};
+
 export default api;
