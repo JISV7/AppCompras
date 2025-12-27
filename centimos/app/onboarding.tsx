@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, Image, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Colors } from '@/constants/theme';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +32,8 @@ export default function OnboardingScreen() {
   const textColor = useThemeColor({}, 'text');
   const primaryColor = useThemeColor({}, 'primary');
   const textSecondaryColor = useThemeColor({}, 'textSecondary');
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const nextStep = () => {
     if (currentStep < onboardingData.length - 1) {
@@ -49,7 +52,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: color }]}>
+    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom + 20 }]}>
       {/* Top App Bar */}
       <View style={styles.topBar}>
         <Link href="/welcome" asChild>
@@ -105,20 +108,23 @@ export default function OnboardingScreen() {
 
         {/* Get Started Button */}
         {currentStep === onboardingData.length - 1 ? (
-          <Link href="/welcome" asChild>
-            <Text
-              style={[styles.actionButton, { backgroundColor: primaryColor }]}
-            >
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: primaryColor }]}
+            onPress={() => router.push('/welcome')}
+          >
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>
               Get Started
             </Text>
-          </Link>
+          </TouchableOpacity>
         ) : (
-          <Text
+          <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: primaryColor }]}
             onPress={nextStep}
           >
-            Next
-          </Text>
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>
+              Next
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
     </ThemedView>
@@ -194,6 +200,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     alignItems: 'center',
     gap: 32,
+    marginBottom: 20, // Add margin to avoid overlap with navigation controls
   },
   indicators: {
     flexDirection: 'row',

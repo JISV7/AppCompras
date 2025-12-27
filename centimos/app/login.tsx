@@ -1,11 +1,11 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Colors } from '@/constants/theme';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const color = useThemeColor({}, 'background');
@@ -13,26 +13,26 @@ export default function LoginScreen() {
   const textSecondaryColor = useThemeColor({}, 'textSecondary');
   const primaryColor = useThemeColor({}, 'primary');
   const surfaceColor = useThemeColor({}, 'surfaceLight');
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
   const { login } = useAuth();
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
-  const handleLogin = () => {
-    // In a real app, you would handle login logic here
-    console.log('Login with:', { email, password });
-    login(email, password);
-    // After successful login, navigate to main app
-    router.replace('/(tabs)/index');
+  const handleLogin = async () => {
+    try {
+      await login(email, password);
+    } catch (e) {
+      console.log("Login error handled");
+    }
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: color }]}>
+    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
       {/* Header Section */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
@@ -60,11 +60,7 @@ export default function LoginScreen() {
           <Text style={[styles.label, { color: textColor }]}>Email Address</Text>
           <View style={styles.inputContainer}>
             <View style={styles.inputIconContainer}>
-              <MaterialIcons
-                name="mail"
-                size={20}
-                color={textSecondaryColor}
-              />
+              <MaterialIcons name="mail" size={20} color={textSecondaryColor} />
             </View>
             <TextInput
               style={[styles.input, { color: textColor, backgroundColor: surfaceColor }]}
@@ -83,11 +79,7 @@ export default function LoginScreen() {
           <Text style={[styles.label, { color: textColor }]}>Password</Text>
           <View style={styles.inputContainer}>
             <View style={styles.inputIconContainer}>
-              <MaterialIcons
-                name="lock"
-                size={20}
-                color={textSecondaryColor}
-              />
+              <MaterialIcons name="lock" size={20} color={textSecondaryColor} />
             </View>
             <TextInput
               style={[styles.input, { color: textColor, backgroundColor: surfaceColor }]}
@@ -97,10 +89,7 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity
-              style={styles.passwordToggle}
-              onPress={togglePasswordVisibility}
-            >
+            <TouchableOpacity style={styles.passwordToggle} onPress={togglePasswordVisibility}>
               <MaterialIcons
                 name={showPassword ? "visibility" : "visibility-off"}
                 size={20}
@@ -109,9 +98,11 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
           <Link href="/forgot-password" asChild>
-            <Text style={[styles.forgotPassword, { color: primaryColor }]}>
-              Forgot Password?
-            </Text>
+            <TouchableOpacity>
+               <Text style={[styles.forgotPassword, { color: primaryColor }]}>
+                 Forgot Password?
+               </Text>
+            </TouchableOpacity>
           </Link>
         </View>
 
@@ -158,11 +149,13 @@ export default function LoginScreen() {
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
-          Don't have an account?
-          <Link href="/register" asChild>
-            <Text style={{ color: primaryColor, fontWeight: 'bold' }}> Sign Up</Text>
-          </Link>
+          Don't have an account?{' '}
         </Text>
+        <Link href="/register" asChild>
+          <TouchableOpacity>
+             <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Sign Up</Text>
+          </TouchableOpacity>
+        </Link>
       </View>
     </ThemedView>
   );

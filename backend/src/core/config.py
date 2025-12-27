@@ -17,7 +17,15 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str
+    MAIL_FROM_NAME: str = "Centimos App"
+
+    # Configuration to read from .env file
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:

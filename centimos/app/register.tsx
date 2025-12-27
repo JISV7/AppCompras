@@ -1,11 +1,11 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Colors } from '@/constants/theme';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RegisterScreen() {
   const color = useThemeColor({}, 'background');
@@ -13,39 +13,40 @@ export default function RegisterScreen() {
   const textSecondaryColor = useThemeColor({}, 'textSecondary');
   const primaryColor = useThemeColor({}, 'primary');
   const surfaceColor = useThemeColor({}, 'surfaceLight');
+  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
   const { register } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
-
-  const handleRegister = () => {
-    // In a real app, you would handle registration logic here
-    console.log('Register with:', { fullName, email, password, confirmPassword });
-
-    if (password !== confirmPassword) {
-      // In a real app, you'd show an error message
-      console.log('Passwords do not match');
+  const handleRegister = async () => {
+    if (!email || !password || !fullName) {
+      alert("Please fill in all fields");
       return;
     }
 
-    register(email, password, fullName);
-    // After successful registration, navigate to main app
-    router.replace('/(tabs)/index');
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    try {
+      await register(email, password, fullName);
+      // AuthContext handles the redirect if successful
+    } catch (error: any) {
+      console.log("Registration failed");
+    }
   };
 
-  // Password strength indicators
   const passwordStrength = {
     length: password.length >= 8,
     number: /\d/.test(password),
@@ -53,15 +54,17 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: color }]}>
+    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
       {/* Header Section */}
       <View style={styles.header}>
-        <Link href="/welcome" asChild>
-          <TouchableOpacity style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color={textColor} />
-          </TouchableOpacity>
-        </Link>
-        <View style={styles.spacer} /> {/* Spacer for balance */}
+        {/* CHANGED: Replaced Link with simple onPress */}
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={textColor} />
+        </TouchableOpacity>
+        <View style={styles.spacer} />
       </View>
 
       {/* Main Content Area */}
@@ -81,11 +84,11 @@ export default function RegisterScreen() {
 
         {/* Form Section */}
         <View style={styles.form}>
-          {/* Full Name Input */}
           <View style={styles.inputGroup}>
             <TextInput
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
               placeholder="John Doe"
+              placeholderTextColor="#9CA3AF"
               value={fullName}
               onChangeText={setFullName}
               autoCapitalize="words"
@@ -93,11 +96,11 @@ export default function RegisterScreen() {
             <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Full Name</Text>
           </View>
 
-          {/* Email Input */}
           <View style={styles.inputGroup}>
             <TextInput
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
               placeholder="name@example.com"
+              placeholderTextColor="#9CA3AF"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -106,11 +109,11 @@ export default function RegisterScreen() {
             <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Email Address</Text>
           </View>
 
-          {/* Password Input */}
           <View style={styles.inputGroup}>
             <TextInput
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
               placeholder="Password"
+              placeholderTextColor="#9CA3AF"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
@@ -125,7 +128,7 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Password Strength Indicators */}
+          {/* Password Strength */}
           <View style={styles.strengthIndicators}>
             <View style={styles.strengthItem}>
               <View style={[
@@ -135,59 +138,43 @@ export default function RegisterScreen() {
                   borderColor: passwordStrength.length ? primaryColor : '#D1D5DB'
                 }
               ]}>
-                {passwordStrength.length && (
-                  <MaterialIcons name="check" size={10} color="white" />
-                )}
+                {passwordStrength.length && <MaterialIcons name="check" size={10} color="white" />}
               </View>
-              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>
-                8+ chars
-              </Text>
+              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>8+ chars</Text>
             </View>
-            <View style={[
-              styles.strengthItem,
-              { opacity: passwordStrength.number ? 1 : 0.5 }
-            ]}>
-              <View style={[
+
+            <View style={[styles.strengthItem, { opacity: passwordStrength.number ? 1 : 0.5 }]}>
+               <View style={[
                 styles.strengthIndicator,
                 {
                   backgroundColor: passwordStrength.number ? primaryColor : 'transparent',
                   borderColor: passwordStrength.number ? primaryColor : '#D1D5DB'
                 }
               ]}>
-                {passwordStrength.number && (
-                  <MaterialIcons name="check" size={10} color="white" />
-                )}
+                {passwordStrength.number && <MaterialIcons name="check" size={10} color="white" />}
               </View>
-              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>
-                1 number
-              </Text>
+              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>1 number</Text>
             </View>
-            <View style={[
-              styles.strengthItem,
-              { opacity: passwordStrength.symbol ? 1 : 0.5 }
-            ]}>
-              <View style={[
+
+             <View style={[styles.strengthItem, { opacity: passwordStrength.symbol ? 1 : 0.5 }]}>
+               <View style={[
                 styles.strengthIndicator,
                 {
                   backgroundColor: passwordStrength.symbol ? primaryColor : 'transparent',
                   borderColor: passwordStrength.symbol ? primaryColor : '#D1D5DB'
                 }
               ]}>
-                {passwordStrength.symbol && (
-                  <MaterialIcons name="check" size={10} color="white" />
-                )}
+                {passwordStrength.symbol && <MaterialIcons name="check" size={10} color="white" />}
               </View>
-              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>
-                1 symbol
-              </Text>
+              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>1 symbol</Text>
             </View>
           </View>
 
-          {/* Confirm Password Input */}
           <View style={styles.inputGroup}>
             <TextInput
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
               placeholder="Confirm Password"
+              placeholderTextColor="#9CA3AF"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
@@ -202,17 +189,14 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Primary Action Button */}
           <TouchableOpacity
             style={[styles.signupButton, { backgroundColor: primaryColor }]}
             onPress={handleRegister}
           >
             <Text style={styles.signupButtonText}>Sign Up</Text>
-            <MaterialIcons name="arrow-forward" size={18} color="white" />
           </TouchableOpacity>
         </View>
 
-        {/* Divider */}
         <View style={styles.dividerContainer}>
           <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
           <Text style={[styles.dividerText, { backgroundColor: color, color: useThemeColor({}, 'textSecondary') }]}>
@@ -221,7 +205,6 @@ export default function RegisterScreen() {
           <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
         </View>
 
-        {/* Social Buttons */}
         <View style={styles.socialButtons}>
           <TouchableOpacity style={[styles.socialButton, { backgroundColor: surfaceColor }]}>
             <MaterialIcons name="mail" size={20} color="#4285F4" />
@@ -236,12 +219,15 @@ export default function RegisterScreen() {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
-          Already have an account?
-          <Link href="/login" asChild>
-            <Text style={{ color: primaryColor, fontWeight: 'bold' }}> Log In</Text>
-          </Link>
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
+            Already have an account?{' '}
+          </Text>
+          {/* CHANGED: Replaced Link with simple onPress */}
+          <TouchableOpacity onPress={() => router.push('/login')}>
+            <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Log In</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ThemedView>
   );

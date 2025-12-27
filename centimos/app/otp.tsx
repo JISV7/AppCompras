@@ -1,150 +1,183 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Colors } from '@/constants/theme';
-import { Link, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { Link, useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useRef, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import api from '@/services/api';
 
 export default function OtpScreen() {
   const color = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'textMain');
   const textSecondaryColor = useThemeColor({}, 'textSecondary');
   const primaryColor = useThemeColor({}, 'primary');
+  const surfaceColor = useThemeColor({}, 'surfaceLight');
+  
+  // Get the email passed from the previous screen
+  const { email } = useLocalSearchParams<{ email: string }>();
+  
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [newPassword, setNewPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(59);
+  
+  // Refs for focusing next inputs (Phone Safe)
+  const inputRefs = useRef<Array<TextInput | null>>([]);
+  
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-
     if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer(prev => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setTimer(prev => prev - 1), 1000);
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [timer]);
 
   const handleOtpChange = (index: number, value: string) => {
-    if (/^\d*$/.test(value) || value === '') {
+    if (/^\d*$/.test(value)) {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
 
-      // Move to next input if value is entered and not the last input
+      // Auto-focus next input
       if (value && index < 5) {
-        const nextInput = document.getElementById(`otp-input-${index + 1}`);
-        // @ts-ignore
-        nextInput?.focus();
+        inputRefs.current[index + 1]?.focus();
       }
     }
   };
 
-  const handleVerify = () => {
-    const otpCode = otp.join('');
-    if (otpCode.length === 6) {
-      // In a real app, you would verify the OTP code
-      console.log('Verifying OTP:', otpCode);
-      Alert.alert('Success', 'OTP verified successfully!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            // After successful OTP verification, navigate to reset password screen
-            // For now, we'll navigate to login
-            router.replace('/login');
-          }
-        }
+  const handleVerifyAndReset = async () => {
+    const code = otp.join('');
+    
+    if (code.length !== 6) {
+      Alert.alert('Error', 'Please enter the complete 6-digit code');
+      return;
+    }
+
+    // 2. STRONG Password Check (Regex)
+    // ^ = start
+    // (?=.*[0-9]) = must contain at least 1 digit
+    // (?=.*[!@#$%^&*]) = must contain at least 1 symbol (you can add more symbols inside [])
+    // .{8,} = at least 8 characters long
+    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+
+    if (!passwordRegex.test(newPassword)) {
+      Alert.alert(
+        'Weak Password', 
+        'Password must be at least 8 characters long and contain at least 1 number and 1 symbol.'
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/auth/reset-password', {
+        email: email,
+        code: code,
+        new_password: newPassword
+      });
+
+      Alert.alert('Success', 'Password updated! Please login.', [
+        { text: 'OK', onPress: () => router.replace('/login') }
       ]);
-    } else {
-      Alert.alert('Error', 'Please enter the complete OTP code');
+      
+    } catch (error: any) {
+      console.error('Reset Password Error:', error);
+      
+      // 1. Extract the specific message from the backend (e.g., "Invalid request")
+      const backendMessage = error.response?.data?.detail;
+      
+      // 2. Fallback message if backend doesn't speak
+      const displayMessage = backendMessage || 'Invalid code or expired.';
+
+      // 3. Show a nice Alert instead of crashing
+      Alert.alert('Verification Failed', displayMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleResend = () => {
-    // In a real app, you would resend the OTP
-    console.log('Resending OTP...');
-    setTimer(59); // Reset timer
-    Alert.alert('OTP Resent', 'A new OTP has been sent to your email');
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  const handleResend = async () => {
+    try {
+      await api.post('/auth/forgot-password', { email });
+      setTimer(59);
+      Alert.alert('Sent', 'A new code has been sent.');
+    } catch (e) {
+      Alert.alert('Error', 'Could not resend code.');
+    }
   };
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: color }]}>
-      {/* TopAppBar */}
-      <View style={styles.topBar}>
-        <Link href="/forgot-password" asChild>
-          <TouchableOpacity style={styles.backButton}>
-            <MaterialIcons name="arrow-back-ios-new" size={24} color={textColor} />
-          </TouchableOpacity>
-        </Link>
-      </View>
-
-      {/* Main Content */}
-      <View style={styles.content}>
-        {/* Icon / Illustration */}
-        <View style={styles.iconContainer}>
-          <View style={[styles.iconWrapper, { backgroundColor: `${primaryColor}1a` }]}>
-            <MaterialIcons name="mark-email-unread" size={48} color={primaryColor} />
-          </View>
-        </View>
-
-        {/* HeadlineText */}
-        <Text style={[styles.headline, { color: textColor }]}>
-          Check your mail
-        </Text>
-
-        {/* BodyText */}
-        <Text style={[styles.bodyText, { color: textSecondaryColor }]}>
-          We sent a 6-digit code to <Text style={{ fontWeight: 'bold', color: textColor }}>alex***@gmail.com</Text>. Enter it below to reset your password.
-        </Text>
-
-        {/* ConfirmationCode */}
-        <View style={styles.otpContainer}>
-          {otp.map((digit, index) => (
-            <TextInput
-              key={index}
-              id={`otp-input-${index}`}
-              style={[styles.otpInput, { color: textColor, backgroundColor: useThemeColor({}, 'surfaceLight') }]}
-              value={digit}
-              onChangeText={(value) => handleOtpChange(index, value)}
-              keyboardType="number-pad"
-              maxLength={1}
-              autoFocus={index === 0}
-            />
-          ))}
-        </View>
-
-        {/* Timer / Resend */}
-        <View style={styles.timerContainer}>
-          <Text style={[styles.timerText, { color: textSecondaryColor }]}>
-            Resend code in <Text style={{ color: textColor, fontWeight: 'bold' }}>{formatTime(timer)}</Text>
-          </Text>
-          {timer === 0 && (
-            <TouchableOpacity onPress={handleResend}>
-              <Text style={[styles.resendLink, { color: primaryColor }]}>Resend Code</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 20 }}>
+          
+          {/* Back Button */}
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <MaterialIcons name="arrow-back-ios-new" size={24} color={textColor} />
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
+          </View>
 
-      {/* Verify Button */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.verifyButton, { backgroundColor: primaryColor }]}
-          onPress={handleVerify}
-        >
-          <Text style={styles.verifyButtonText}>Verify and Reset</Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={[styles.headline, { color: textColor }]}>Reset Password</Text>
+          <Text style={[styles.bodyText, { color: textSecondaryColor }]}>
+            Enter the code sent to <Text style={{ fontWeight: 'bold' }}>{email}</Text> and your new password.
+          </Text>
+
+          {/* OTP Inputs */}
+          <View style={styles.otpContainer}>
+            {otp.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={ref => inputRefs.current[index] = ref}
+                style={[styles.otpInput, { color: textColor, backgroundColor: surfaceColor }]}
+                value={digit}
+                onChangeText={(value) => handleOtpChange(index, value)}
+                keyboardType="number-pad"
+                maxLength={1}
+                selectTextOnFocus
+              />
+            ))}
+          </View>
+
+          {/* New Password Input */}
+          <View style={styles.passwordContainer}>
+             <Text style={[styles.label, { color: textSecondaryColor }]}>New Password</Text>
+             <TextInput
+                style={[styles.passwordInput, { color: textColor, backgroundColor: surfaceColor }]}
+                placeholder="Enter new password"
+                placeholderTextColor={textSecondaryColor}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry
+             />
+          </View>
+
+          {/* Timer */}
+          <View style={styles.timerContainer}>
+            {timer > 0 ? (
+              <Text style={{ color: textSecondaryColor }}>Resend in {timer}s</Text>
+            ) : (
+              <TouchableOpacity onPress={handleResend}>
+                <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Resend Code</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Action Button */}
+          <TouchableOpacity
+            style={[styles.verifyButton, { backgroundColor: primaryColor }]}
+            onPress={handleVerifyAndReset}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff"/> : <Text style={styles.verifyButtonText}>Confirm Change</Text>}
+          </TouchableOpacity>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }

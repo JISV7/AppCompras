@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Colors } from '@/constants/theme';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import api from '@/services/api'; // Import your API
 
 export default function ForgotPasswordScreen() {
   const color = useThemeColor({}, 'background');
@@ -12,16 +13,41 @@ export default function ForgotPasswordScreen() {
   const textSecondaryColor = useThemeColor({}, 'textSecondary');
   const primaryColor = useThemeColor({}, 'primary');
   const surfaceColor = useThemeColor({}, 'surfaceLight');
+  
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const handleSendResetLink = () => {
-    // In a real app, you would send reset link to the email
-    console.log('Sending reset link to:', email);
+  const handleSendResetLink = async () => {
+    if (!email.includes('@')) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1. Call Backend
+      await api.post('/auth/forgot-password', { email });
+      
+      // 2. Success Feedback
+      Alert.alert('Email Sent', 'Check your inbox for the code.');
+      
+      // 3. Navigate to OTP screen with the email
+      router.push({
+        pathname: '/otp',
+        params: { email: email } 
+      });
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert('Error', 'Could not send reset code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: color }]}>
-      {/* TopAppBar */}
+    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
       <View style={styles.topBar}>
         <Link href="/login" asChild>
           <TouchableOpacity style={styles.backButton}>
@@ -30,68 +56,40 @@ export default function ForgotPasswordScreen() {
         </Link>
       </View>
 
-      {/* Scrollable Content */}
       <View style={styles.content}>
-        {/* HeaderImage (Adapted for Illustration) */}
-        <View style={styles.headerImageContainer}>
-          <View style={styles.headerImageWrapper}>
-            <View style={[styles.headerImage, {
-              backgroundColor: 'transparent',
-              backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuASTkR3df8KpUMIFHCBZ0sNJqymqBHziS7DXCPJnWSNJ4Wcj2BDMp_lgBcKQjF-arg8RNH9eJG19lMhIAvpYv5swI52wd6BnRmUibSq0jEHBLN0iZagpomtAZkntiePhtnHffZ0wOVL3IBwGgNWTKiejHvTH1kKfiKN2sRxPuRfoM-nPpmJDss9GCnX21lCZDelQ2r9R5eZAfK0OzCIsGrZ20FMraEdLpg6rEvKcoP8-jksUR3InbmV83Ut7Nh5DFgYlUjPAEHLXTTe')`,
-            }]} />
-          </View>
-        </View>
-
-        {/* HeadlineText */}
         <Text style={[styles.headline, { color: textColor }]}>
           Forgot Password?
         </Text>
-
-        {/* BodyText */}
         <Text style={[styles.bodyText, { color: textSecondaryColor }]}>
           Don't worry! It happens. Please enter the email associated with your account.
         </Text>
 
-        {/* Spacing */}
         <View style={styles.spacer} />
 
-        {/* Form Section */}
         <View style={styles.form}>
-          {/* Floating Label Input */}
           <View style={styles.inputGroup}>
             <TextInput
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
-              placeholder=" "
+              placeholder="Enter your email"
+              placeholderTextColor={textSecondaryColor}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>
-              Email Address
-            </Text>
-            {/* Optional Email Icon indicator */}
-            <View style={styles.emailIcon}>
-              <MaterialIcons name="mail" size={20} color={textSecondaryColor} />
-            </View>
           </View>
 
-          {/* Primary Action Button */}
-          <Link href="/otp" asChild>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: primaryColor }]}
-              onPress={handleSendResetLink}
-            >
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: primaryColor }]}
+            onPress={handleSendResetLink}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
               <Text style={styles.actionButtonText}>Send Instructions</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-
-        {/* Footer / Help Link */}
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: textSecondaryColor }]}>
-            No access to email? <Link href="#" asChild><Text style={{ color: primaryColor, fontWeight: '500' }}>Contact Support</Text></Link>
-          </Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
     </ThemedView>

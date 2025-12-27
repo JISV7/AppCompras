@@ -11,11 +11,9 @@ export default function HomeScreen() {
   const textColor = useThemeColor({}, 'text');
   const primaryColor = useThemeColor({}, 'primary');
   const { user, logout } = useAuth();
-  const router = useRouter();
 
   const handleLogout = () => {
     logout();
-    router.replace('/welcome'); // Redirect to welcome screen after logout
   };
 
   return (
@@ -25,7 +23,7 @@ export default function HomeScreen() {
           Welcome to CentimosVE!
         </Text>
         <Text style={[styles.subtitle, { color: useThemeColor({}, 'textSecondary') }]}>
-          {user ? `Hello, ${user.name || user.email}!` : 'You are now logged in.'}
+          {user ? `Hello, ${user.username || user.email}!` : 'You are now logged in.'}
         </Text>
         
         <Text style={[styles.description, { color: textColor }]}>

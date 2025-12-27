@@ -4,15 +4,17 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function WelcomeScreen() {
   const color = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'textMain');
   const textSubColor = useThemeColor({}, 'textSub');
   const primaryColor = useThemeColor({}, 'primary');
+  const insets = useSafeAreaInsets();
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: color }]}>
+    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
       {/* Content Wrapper */}
       <View style={styles.contentWrapper}>
         {/* Top Branding / Illustration Area */}
@@ -87,6 +89,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#f6f8f7',
   },
   contentWrapper: {
     flex: 1,
