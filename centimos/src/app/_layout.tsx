@@ -20,17 +20,18 @@ function InitialLayout() {
 
     // Define which routes are "Public" (accessible without login)
     // We check segments[0] (the first part of the URL)
-    const inAuthGroup = segments[0] === '(auth)' || 
-      ['welcome', 'login', 'register', 'onboarding', 'splash', 'index'].includes(segments[0] || 'index');
+    const inAuthGroup = segments[0] === '(auth)';
+    const inPublicGroup = segments[0] === '(public)';
+    const isPublicRoute = inPublicGroup || ['index'].includes(segments[0] || 'index');
 
-    if (user && inAuthGroup) {
-      // If user is logged in, but currently on a public screen (like Login), 
+    if (user && (inAuthGroup || isPublicRoute)) {
+      // If user is logged in, but currently on a public screen (like Login),
       // redirect them to the Tabs (Home)
       router.replace('/(tabs)');
     } else if (!user && segments[0] === '(tabs)') {
       // If user is NOT logged in, but tries to access Tabs,
       // kick them back to Welcome
-      router.replace('/welcome');
+      router.replace('/(public)/welcome');
     }
   }, [user, isLoading, segments]);
 
@@ -38,13 +39,13 @@ function InitialLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="splash" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="welcome" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ headerShown: false }} />
-        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
-        <Stack.Screen name="otp" options={{ headerShown: false }} />
+        <Stack.Screen name="(public)/splash" options={{ headerShown: false }} />
+        <Stack.Screen name="(public)/onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="(public)/welcome" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/otp" options={{ headerShown: false }} />
         {/* The Tabs Folder */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

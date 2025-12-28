@@ -35,8 +35,8 @@ export default function ForgotPasswordScreen() {
       
       // 3. Navigate to OTP screen with the email
       router.push({
-        pathname: '/otp',
-        params: { email: email } 
+        pathname: '/(auth)/otp',
+        params: { email: email }
       });
     } catch (error: any) {
       console.error(error);
@@ -49,7 +49,7 @@ export default function ForgotPasswordScreen() {
   return (
     <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
       <View style={styles.topBar}>
-        <Link href="/login" asChild>
+        <Link href="/(auth)/login" asChild>
           <TouchableOpacity style={styles.backButton}>
             <MaterialIcons name="arrow-back-ios-new" size={24} color={textColor} />
           </TouchableOpacity>

@@ -97,7 +97,7 @@ export default function LoginScreen() {
               />
             </TouchableOpacity>
           </View>
-          <Link href="/forgot-password" asChild>
+          <Link href="/(auth)/forgot-password" asChild>
             <TouchableOpacity>
                <Text style={[styles.forgotPassword, { color: primaryColor }]}>
                  Forgot Password?
@@ -151,7 +151,7 @@ export default function LoginScreen() {
         <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
           Don't have an account?{' '}
         </Text>
-        <Link href="/register" asChild>
+        <Link href="/(auth)/register" asChild>
           <TouchableOpacity>
              <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Sign Up</Text>
           </TouchableOpacity>

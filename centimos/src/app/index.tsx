@@ -16,7 +16,7 @@ export default function Index() {
   }, []);
 
   if (showSplash) {
-    return <Redirect href="/splash" />;
+    return <Redirect href="/(public)/splash" />;
   }
 
   // If user is authenticated, redirect to main app
@@ -26,5 +26,5 @@ export default function Index() {
 
   // Check if user has completed onboarding
   // For now, redirect to onboarding - in a real app you'd check this with async storage
-  return <Redirect href="/onboarding" />;
+  return <Redirect href="/(public)/onboarding" />;
 }

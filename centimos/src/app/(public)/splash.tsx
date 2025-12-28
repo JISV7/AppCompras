@@ -35,7 +35,7 @@ export default function SplashScreen() {
       // In a real app, you'd check if user has completed onboarding
       // For now, redirect to onboarding
       // If user has completed onboarding, redirect to login or main app
-      router.replace('/onboarding');
+      router.replace('/(public)/onboarding');
     }, 2000);
 
     return () => clearTimeout(timer);

@@ -50,14 +50,14 @@ export default function WelcomeScreen() {
         {/* Action Buttons Area */}
         <View style={styles.buttonArea}>
           {/* Create Account Button (Primary) */}
-          <Link href="/register" asChild>
+          <Link href="/(auth)/register" asChild>
             <TouchableOpacity style={[styles.primaryButton, { backgroundColor: primaryColor }]}>
               <Text style={styles.primaryButtonText}>Create Account</Text>
             </TouchableOpacity>
           </Link>
 
           {/* Login Button (Outline/Secondary) */}
-          <Link href="/login" asChild>
+          <Link href="/(auth)/login" asChild>
             <TouchableOpacity style={[styles.secondaryButton, { borderColor: `${primaryColor}33` }]}>
               <Text style={[styles.secondaryButtonText, { color: primaryColor }]}>Login</Text>
             </TouchableOpacity>

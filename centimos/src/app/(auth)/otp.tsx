@@ -81,7 +81,7 @@ export default function OtpScreen() {
       });
 
       Alert.alert('Success', 'Password updated! Please login.', [
-        { text: 'OK', onPress: () => router.replace('/login') }
+        { text: 'OK', onPress: () => router.replace('/(auth)/login') }
       ]);
       
     } catch (error: any) {

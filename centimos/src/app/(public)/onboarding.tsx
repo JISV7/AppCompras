@@ -55,7 +55,7 @@ export default function OnboardingScreen() {
     <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom + 20 }]}>
       {/* Top App Bar */}
       <View style={styles.topBar}>
-        <Link href="/welcome" asChild>
+        <Link href="/(public)/welcome" asChild>
           <Text style={[styles.skipButton, { color: primaryColor }]}>
             Skip
           </Text>
@@ -110,7 +110,7 @@ export default function OnboardingScreen() {
         {currentStep === onboardingData.length - 1 ? (
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: primaryColor }]}
-            onPress={() => router.push('/welcome')}
+            onPress={() => router.push('/(public)/welcome')}
           >
             <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>
               Get Started
