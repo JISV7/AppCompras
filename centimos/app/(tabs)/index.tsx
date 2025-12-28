@@ -4,8 +4,10 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useState, useEffect, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { getLatestExchangeRate } from '@/services/api';
+import { getLatestExchangeRate, getUserProfile } from '@/services/api';
 import { useCameraPermissions } from 'expo-camera';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 // Import our new Lego blocks
 import { ExchangeRateCard } from '@/components/home/ExchangeRateCard';
@@ -13,6 +15,7 @@ import { ScannerAction } from '@/components/home/ScannerAction';
 import { CameraModal } from '@/components/scanner/CameraModal';
 import { getProduct } from '@/services/api'; // Import the new service
 import { ProductSheet } from '@/components/scanner/ProductSheet'; // Import the new sheet
+import { ProfileSheet } from '@/components/home/ProfileSheet';
 
 export default function HomeScreen() {
   const color = useThemeColor({}, 'background');
@@ -21,12 +24,16 @@ export default function HomeScreen() {
   const cardColor = useThemeColor({}, 'surfaceLight'); // Needed for the quick action buttons
   const primaryColor = useThemeColor({}, 'primary');
   const insets = useSafeAreaInsets();
-  
+  const router = useRouter();
+  const { logout } = useAuth();
+
   // State
   const [rate, setRate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [user, setUser] = useState(null);
+  const [profileVisible, setProfileVisible] = useState(false);
 
   // Camera State
   const [isScanning, setIsScanning] = useState(false);
@@ -39,8 +46,15 @@ export default function HomeScreen() {
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const data = await getLatestExchangeRate();
-    if (data) setRate(data);
+    // We can run these in parallel for speed
+    const [rateData, userData] = await Promise.all([
+      getLatestExchangeRate(),
+      getUserProfile()
+    ]);
+
+    if (rateData) setRate(rateData);
+    if (userData) setUser(userData);
+
     setLoading(false);
   };
 
@@ -51,6 +65,17 @@ export default function HomeScreen() {
     await fetchData();
     setRefreshing(false);
   }, []);
+
+  const handleLogout = async () => {
+    setProfileVisible(false);
+    try {
+      await logout(); // This will clear tokens and update auth state
+      // The _layout.tsx will automatically redirect to welcome screen
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Error", "There was an issue logging out. Please try again.");
+    }
+  };
 
   const handleStartScanning = async () => {
     if (!permission?.granted) {
@@ -121,8 +146,20 @@ export default function HomeScreen() {
           <Text style={[styles.appName, { color: primaryColor }]}>Céntimos</Text>
           <Text style={[styles.greeting, { color: subTextColor }]}>Smart Shopping</Text>
         </View>
-        <TouchableOpacity style={[styles.profileButton, { backgroundColor: cardColor }]}>
-           <FontAwesome5 name="user" size={16} color={textColor} />
+
+        {/* CLICKABLE PROFILE BUTTON */}
+        <TouchableOpacity
+          style={[styles.profileButton, { backgroundColor: cardColor }]}
+          onPress={() => setProfileVisible(true)} // <--- Opens the sheet
+        >
+           {/* Show initial if user loaded, else show icon */}
+           {user?.full_name || user?.username ? (
+             <Text style={{fontWeight: 'bold', color: primaryColor}}>
+               {(user.full_name || user.username)?.charAt(0)}
+             </Text>
+           ) : (
+             <FontAwesome5 name="user" size={16} color={textColor} />
+           )}
         </TouchableOpacity>
       </View>
 
@@ -175,6 +212,14 @@ export default function HomeScreen() {
         barcode={lastScannedCode}
         onClose={handleCloseSheet}
         onRescan={handleRescan}
+      />
+
+      {/* ADD PROFILE SHEET HERE */}
+      <ProfileSheet
+        visible={profileVisible}
+        user={user}
+        onClose={() => setProfileVisible(false)}
+        onLogout={handleLogout}
       />
 
     </ThemedView>

@@ -61,4 +61,14 @@ export const getProduct = async (barcode: string) => {
   }
 };
 
+export const getUserProfile = async () => {
+  try {
+    const response = await api.get('/users/me'); // Standard FastAPI endpoint
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch profile", error);
+    return null; 
+  }
+};
+
 export default api;
