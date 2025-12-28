@@ -37,9 +37,15 @@ export const getLatestExchangeRate = async () => {
   try {
     const response = await api.get('/exchange-rates/latest');
     return response.data; // Returns { currency_code, rate_to_ves, source, ... }
-  } catch (error) {
-    console.error("Failed to fetch rate:", error);
-    return null; // Return null so the UI knows it failed (and can show fallback)
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      // 404 is expected when no exchange rate data exists yet
+      console.log("No exchange rate data available yet");
+      return null; // Return null so the UI knows it failed (and can show fallback)
+    } else {
+      console.error("Failed to fetch rate:", error);
+      return null; // Return null so the UI knows it failed (and can show fallback)
+    }
   }
 };
 
@@ -67,7 +73,7 @@ export const getUserProfile = async () => {
     return response.data;
   } catch (error) {
     console.error("Failed to fetch profile", error);
-    return null; 
+    return null;
   }
 };
 

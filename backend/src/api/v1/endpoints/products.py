@@ -1,17 +1,24 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
 from src.core.deps import CurrentUser, SessionDep
 from src.models.product import Product
 from src.schemas.product import ProductCreate, ProductRead
-from src.services.external_product import fetch_product_from_off
+from src.services.external_product import fetch_product_from_off, normalize_to_gtin13, validate_gtin
 
 router = APIRouter()
 
 
 @router.get("/{barcode}", response_model=ProductRead)
 async def get_product(barcode: str, db: SessionDep, current_user: CurrentUser):
-    result = await db.execute(select(Product).where(Product.barcode == barcode))
+    # Validate the barcode first
+    validate_gtin(barcode)
+
+    # Normalize the input barcode to GTIN-13 for consistent lookup
+    normalized_barcode = normalize_to_gtin13(barcode)
+
+    result = await db.execute(select(Product).where(Product.barcode == normalized_barcode))
     product = result.scalars().first()
 
     if product:
@@ -22,13 +29,31 @@ async def get_product(barcode: str, db: SessionDep, current_user: CurrentUser):
     if not external_data:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # Auto-save the product found in OpenFoodFacts to our DB
-    new_product = Product(**external_data)
-    db.add(new_product)
-    await db.commit()
-    await db.refresh(new_product)
+    # Auto-save the product found in OpenFoodFacts to our DB using upsert
+    stmt = insert(Product).values(**external_data)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=['barcode'],
+        set_=dict(
+            name=stmt.excluded.name,
+            brand=stmt.excluded.brand,
+            category=stmt.excluded.category,
+            image_url=stmt.excluded.image_url,
+            data_source=stmt.excluded.data_source,
+            created_at=stmt.excluded.created_at  # Preserve original creation time
+        )
+    )
 
-    return new_product
+    await db.execute(stmt)
+    await db.commit()
+
+    # Fetch the upserted product to return it
+    result = await db.execute(select(Product).where(Product.barcode == normalized_barcode))
+    upserted_product = result.scalars().first()
+
+    if upserted_product:
+        return upserted_product
+    else:
+        raise HTTPException(status_code=500, detail="Failed to upsert product")
 
 
 @router.post("/", response_model=ProductRead)

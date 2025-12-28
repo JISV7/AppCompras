@@ -16,6 +16,7 @@ import { CameraModal } from '@/components/scanner/CameraModal';
 import { getProduct } from '@/services/api'; // Import the new service
 import { ProductSheet } from '@/components/scanner/ProductSheet'; // Import the new sheet
 import { ProfileSheet } from '@/components/home/ProfileSheet';
+import { validateGtin } from '@/services/validate';
 
 export default function HomeScreen() {
   const color = useThemeColor({}, 'background');
@@ -91,6 +92,17 @@ export default function HomeScreen() {
   // --- REUSABLE SEARCH FUNCTION ---
   const performSearch = async (barcode: string) => {
     if (!barcode) return;
+
+    // Check if the input looks like a barcode (8 or more digits, starting with a digit)
+    const isBarcode = /^\d{8,}$/.test(barcode);
+
+    // Only validate GTIN if it looks like a barcode
+    if (isBarcode && !validateGtin(barcode)) {
+      // Show error to user
+      Alert.alert("Invalid Barcode", "Please enter a valid barcode with correct format and check digit.");
+      setIsSearching(false);
+      return;
+    }
 
     // 1. Reset UI
     Keyboard.dismiss(); // Hide keyboard if open
