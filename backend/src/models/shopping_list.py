@@ -43,6 +43,7 @@ class ListItem(Base):
     )
     product_barcode: Mapped[str] = mapped_column(ForeignKey("products.barcode"))
     quantity: Mapped[int] = mapped_column(Integer, default=1)
+    planned_price: Mapped[float | None] = mapped_column(DECIMAL(10, 2))
     is_purchased: Mapped[bool] = mapped_column(Boolean, default=False)
     added_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()
