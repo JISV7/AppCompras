@@ -43,4 +43,22 @@ export const getLatestExchangeRate = async () => {
   }
 };
 
+export const getProduct = async (barcode: string) => {
+  try {
+    const response = await api.get(`/products/${barcode}`);
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null; // Product truly doesn't exist anywhere
+    }
+    // For 500 errors, log more details but still throw the error
+    if (error.response?.status === 500) {
+      console.error(`Server error when searching for product with barcode ${barcode}:`, error.response.data);
+    } else {
+      console.error(`Failed to get product with barcode ${barcode}:`, error);
+    }
+    throw error; // Network error or other issue
+  }
+};
+
 export default api;
