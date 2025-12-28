@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, ActivityIndicator, Pressable, Platform, KeyboardAvoidingView } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useRouter } from 'expo-router';
 
 interface Product {
   barcode: string;
@@ -20,6 +21,7 @@ interface ProductSheetProps {
 }
 
 export function ProductSheet({ visible, loading, product, barcode, onClose, onRescan }: ProductSheetProps) {
+  const router = useRouter();
   // We use 'background' instead of 'surface' to ensure it's solid and opaque
   const sheetColor = useThemeColor({}, 'background'); 
   const textColor = useThemeColor({}, 'textMain');
@@ -120,7 +122,15 @@ export function ProductSheet({ visible, loading, product, barcode, onClose, onRe
                     <Text style={{ color: subTextColor, fontFamily: 'monospace' }}> {barcode} </Text>
                   </View>
                   
-                  <TouchableOpacity style={[styles.createButton, { backgroundColor: primaryColor }]}>
+                  <TouchableOpacity style={[styles.createButton, { backgroundColor: primaryColor }]}
+                  onPress={() => {
+                    onClose(); // 1. Close the sheet
+                    router.push({
+                      pathname: "/product/create", // 2. Navigate to new screen
+                      params: { barcode: barcode }  // 3. Pass the barcode
+                    });
+                  }}
+                  >
                     <Text style={styles.createButtonText}>Create Product</Text>
                   </TouchableOpacity>
                 </View>
