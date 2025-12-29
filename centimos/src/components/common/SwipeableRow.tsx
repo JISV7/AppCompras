@@ -1,26 +1,25 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+
 import { Ionicons } from '@expo/vector-icons';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import Animated, { useAnimatedStyle, interpolate, Extrapolation, SharedValue, LinearTransition } from 'react-native-reanimated';
 
 interface SwipeableRowProps {
     children: React.ReactNode;
     onDelete: () => void;
-    onUndo?: () => void; // Optional callback if parent needs to know undo happened
-    height?: number; // Estimated height for animation
+    onUndo?: () => void;
+    height?: number;
+    bottomMargin?: number;
 }
 
-export function SwipeableRow({ children, onDelete, onUndo, height = 80, bottomMargin = 0 }: SwipeableRowProps & { bottomMargin?: number }) {
+export function SwipeableRow({ children, onDelete, onUndo, height = 80, bottomMargin = 0 }: SwipeableRowProps) {
     const [isDeleted, setIsDeleted] = useState(false);
     const [timerLeft, setTimerLeft] = useState(5);
-    const swipeableRef = useRef<Swipeable>(null);
+    // The ref type for ReanimatedSwipeable matches the old one mostly in terms of close()
+    const swipeableRef = useRef<any>(null);
     const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-    // Theme colors
-    const deleteColor = '#EF5350'; // Red
-    const undoColor = '#424242'; // Dark Grey for undo bar
 
     useEffect(() => {
         return () => {
@@ -31,18 +30,24 @@ export function SwipeableRow({ children, onDelete, onUndo, height = 80, bottomMa
     }, []);
 
     const renderRightActions = (
-        progress: Animated.AnimatedInterpolation<number>,
-        dragX: Animated.AnimatedInterpolation<number>
+        progress: SharedValue<number>,
+        drag: SharedValue<number>
     ) => {
-        const scale = dragX.interpolate({
-            inputRange: [-100, 0],
-            outputRange: [1, 0],
-            extrapolate: 'clamp',
+        const style = useAnimatedStyle(() => {
+            const scale = interpolate(
+                drag.value,
+                [-100, 0],
+                [1, 0],
+                Extrapolation.CLAMP
+            );
+            return {
+                transform: [{ scale }],
+            };
         });
 
         return (
             <View style={[styles.rightAction, { marginBottom: bottomMargin }]}>
-                <Animated.View style={[styles.actionIcon, { transform: [{ scale }] }]}>
+                <Animated.View style={[styles.actionIcon, style]}>
                     <Ionicons name="trash" size={30} color="white" />
                     <Text style={styles.actionText}>Delete</Text>
                 </Animated.View>
@@ -86,26 +91,30 @@ export function SwipeableRow({ children, onDelete, onUndo, height = 80, bottomMa
 
     if (isDeleted) {
         return (
-            <View style={[styles.undoContainer, { height, marginBottom: bottomMargin > 0 ? bottomMargin : 10 }]}>
+            <Animated.View
+                layout={LinearTransition}
+                style={[styles.undoContainer, { height, marginBottom: bottomMargin > 0 ? bottomMargin : 10 }]}
+            >
                 <Text style={styles.undoText}>Deleted. Undo in {timerLeft}s</Text>
                 <TouchableOpacity onPress={handleUndo} style={styles.undoBtn}>
                     <Text style={styles.undoBtnText}>UNDO</Text>
                 </TouchableOpacity>
-            </View>
+            </Animated.View>
         );
     }
 
     return (
-        <Swipeable
+        <ReanimatedSwipeable
             ref={swipeableRef}
             friction={2}
             enableTrackpadTwoFingerGesture
             rightThreshold={40}
+            overshootRight={false}
             renderRightActions={renderRightActions}
-            onSwipeableRightOpen={handleDelete}
+            onSwipeableOpen={() => handleDelete()}
         >
             {children}
-        </Swipeable>
+        </ReanimatedSwipeable>
     );
 }
 
@@ -117,7 +126,6 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 12,
         marginTop: 0,
-        // marginBottom is handled via style prop
     },
     actionIcon: {
         width: 80, // Width of the delete area
@@ -139,7 +147,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        // marginBottom is handled via style prop (defaults to 10 if not provided or provided as 0, logic above handles it)
         width: '100%',
     },
     undoText: {
