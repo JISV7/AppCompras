@@ -1,11 +1,26 @@
 from typing import Any, List
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy import select, desc
-from src.core.deps import SessionDep
+from src.core.deps import SessionDep, CurrentUser
 from src.models.exchange_rate import ExchangeRate
 from src.schemas.exchange_rate import ExchangeRateCreate, ExchangeRateRead
+from src.services.exchange_rate_updater import update_exchange_rate
 
 router = APIRouter()
+
+@router.post("/update", response_model=ExchangeRateRead)
+async def trigger_update(
+    session: SessionDep,
+    current_user: CurrentUser,  # Protect endpoint
+):
+    """Manually triggers the exchange rate update service."""
+    new_rate = await update_exchange_rate(session)
+    if not new_rate:
+        raise HTTPException(
+            status_code=500, detail="Failed to update exchange rate from any source."
+        )
+    return new_rate
+
 
 @router.post("/", response_model=ExchangeRateRead, status_code=201)
 async def create_exchange_rate(

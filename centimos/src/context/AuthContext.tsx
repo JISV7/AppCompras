@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from "jwt-decode";
 import api from '@/services/api';
 import { Alert } from 'react-native';
+import { AxiosError } from 'axios';
 
 type User = {
   user_id: string;
@@ -29,34 +30,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Helper to fetch full user details after we have a token
   const fetchUserProfile = async (token: string) => {
     try {
-      // 1. Decode locally just to get the ID (optional, but good for fail-safe)
-      const decoded: any = jwtDecode(token);
-      
-      // 2. Call the new Backend Endpoint
-      // We set the Authorization header manually for this request
+      // 1. Call the new Backend Endpoint
       const response = await api.get('/users/me', {
          headers: { Authorization: `Bearer ${token}` }
       });
       
       const userData = response.data;
 
-      // 3. Update State with REAL data from DB
+      // 2. Update State with REAL data from DB
       setUser({ 
-        user_id: userData.user_id, // or userData.id depending on your Schema
+        user_id: userData.user_id,
         email: userData.email,
         username: userData.username 
       });
+      setIsAuthenticated(true);
 
     } catch (error) {
-      console.log("Error fetching profile, falling back to token data", error);
-      // Fallback if backend fails
-      const decoded: any = jwtDecode(token);
-      setUser({ 
-         user_id: decoded.sub, 
-         email: decoded.sub, 
-         username: 'User' 
-      });
+        if (error instanceof AxiosError && error.response?.status === 404) {
+            console.log("User not found, re-throwing.", error);
+            throw error; // Re-throw to be caught by callers
+        } else {
+            console.log("Error fetching profile, falling back to token data", error);
+            // Fallback for other errors
+            const decoded: any = jwtDecode(token);
+            setUser({
+                user_id: decoded.sub,
+                email: decoded.sub,
+                username: 'User'
+            });
+            setIsAuthenticated(true);
+        }
     }
+  };
+
+  const logout = async () => {
+    await SecureStore.deleteItemAsync('token');
+    setIsAuthenticated(false);
+    setUser(null);
   };
 
   useEffect(() => {
@@ -65,10 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = await SecureStore.getItemAsync('token');
         if (token) {
           await fetchUserProfile(token);
-          setIsAuthenticated(true);
         }
       } catch (error) {
-        console.log('Failed to load token', error);
+        if (error instanceof AxiosError && error.response?.status === 404) {
+          console.log('User session invalid, logging out.', error);
+          await logout();
+        } else {
+          console.log('Failed to load token or user profile', error);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -88,15 +102,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { access_token } = response.data;
       await SecureStore.setItemAsync('token', access_token);
-
-      // Fetch user details immediately to update UI name
-      // (This fixes the "Hello, User" issue if we had a /me endpoint, 
-      // but for now it at least standardizes the flow)
+      
       await fetchUserProfile(access_token);
       
-      setIsAuthenticated(true);
-      
     } catch (error: any) {
+       if (error instanceof AxiosError && error.response?.status === 404) {
+          await logout();
+        }
       const msg = error.response?.data?.detail || 'Login failed';
       Alert.alert('Error', msg);
       throw error;
@@ -112,16 +124,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username
       });
       
-      // Auto-login flow
-      // 1. We already have the user data from the register response!
-      //    We can set it directly to avoid a "Hello User" flash.
-      const newUser = response.data; // { user_id, email, username }
+      const newUser = response.data;
       
-      // 2. Perform Login to get the Token
       await login(email, password); 
 
-      // 3. Force update the user state with the correct name 
-      //    (Login might overwrite it with "User" if token is missing data)
       setUser({
         user_id: newUser.user_id,
         email: newUser.email,
@@ -133,12 +139,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Alert.alert('Error', msg);
       throw error;
     }
-  };
-
-  const logout = async () => {
-    await SecureStore.deleteItemAsync('token');
-    setIsAuthenticated(false);
-    setUser(null);
   };
 
   return (

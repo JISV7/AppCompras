@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Link, useRouter } from 'expo-router';
@@ -24,6 +24,10 @@ export default function LoginScreen() {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Alert', 'Please fill in all fields');
+      return;
+    }
     try {
       await login(email, password);
     } catch (e) {
