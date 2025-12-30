@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Colors } from '@/constants/theme';
@@ -22,7 +22,7 @@ const onboardingData = [
   {
     title: "Plan Smart, Spend Less.",
     description: "Create monthly budgets for groceries and pharmacy. Let us estimate the cost before you leave home.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCpWyDayLyNYuUrAUkNZSU4qa7BkxsiXdpPYcEaQzOuPx0lUAQxs02jL6wZZUIBq-nCvJ0xqMXFZk7X8eUNjIvnnQBhfgBeWhOxeZ_KIGtQ41yODFph9gW3MleQ43KcenlobolDN8mfIct4AenGjVW4jLG5VKq9wnCV53F4PlHMRVC__5X4y-9majUoWpmLDHTZ8n1Pu4dZeVWqsOkvSuPSH4cVEAbGyMW4FoEgWSKU5jOB-6sRkQvMNmthwwzJ7QG0AJEgVJwqvvfp"
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCpWyDayLyNYuUrAUkNZSU4qa7BkxsiXdpPYcEaQzOuPx0lUAQxs02jL6wZZUIBq-nCvJ0xqMXFZk7X8eUNjIvnnQBhfgBeWhOxeZ_KIGtQ41yODFph9gW3MleQ43KcenlobolDN8mfIct4AenGjVW4jLG5VKq9wnCV53F4PlHMRVC__5X4y-9majUoWpmLDHTZ8nPu4dZeVWqsOkvSuPSH4cVEAbGyMW4FoEgWSKU5jOB-6sRkQvMNmthwwzJ7QG0AJEgVJwqvvfp"
   }
 ];
 
@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom + 20 }]}>
+    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
       {/* Top App Bar */}
       <View style={styles.topBar}>
         <Link href="/(public)/welcome" asChild>
@@ -63,7 +63,7 @@ export default function OnboardingScreen() {
       </View>
 
       {/* Scrollable Content Area (Flex Grow) */}
-      <View style={styles.content}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.content}>
         {/* Header Image / Illustration */}
         <View style={styles.imageContainer}>
           <View style={styles.imageWrapper}>
@@ -84,7 +84,7 @@ export default function OnboardingScreen() {
             {onboardingData[currentStep].description}
           </Text>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Footer / Bottom Action Area */}
       <View style={styles.bottomSection}>
@@ -134,7 +134,6 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
   topBar: {
@@ -152,14 +151,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 9999,
   },
-  content: {
+  scrollContainer: {
     flex: 1,
+    width: '100%',
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
     maxWidth: 420,
     paddingHorizontal: 24,
-    overflow: 'hidden',
+    paddingBottom: 150,
   },
   imageContainer: {
     width: '100%',
@@ -196,11 +199,10 @@ const styles = StyleSheet.create({
   bottomSection: {
     width: '100%',
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 0,
+    paddingBottom: 24,
+    paddingTop: 12,
     alignItems: 'center',
     gap: 32,
-    marginBottom: 20, // Add margin to avoid overlap with navigation controls
   },
   indicators: {
     flexDirection: 'row',

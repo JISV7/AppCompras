@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Link, useRouter } from 'expo-router';
@@ -47,52 +47,63 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
-      <View style={styles.topBar}>
-        <Link href="/(auth)/login" asChild>
-          <TouchableOpacity style={styles.backButton}>
-            <MaterialIcons name="arrow-back-ios-new" size={24} color={textColor} />
-          </TouchableOpacity>
-        </Link>
-      </View>
-
-      <View style={styles.content}>
-        <Text style={[styles.headline, { color: textColor }]}>
-          Forgot Password?
-        </Text>
-        <Text style={[styles.bodyText, { color: textSecondaryColor }]}>
-          Don't worry! It happens. Please enter the email associated with your account.
-        </Text>
-
-        <View style={styles.spacer} />
-
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <TextInput
-              style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
-              placeholder="Enter your email"
-              placeholderTextColor={textSecondaryColor}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: primaryColor }]}
-            onPress={handleSendResetLink}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.actionButtonText}>Send Instructions</Text>
-            )}
-          </TouchableOpacity>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
+        <View style={styles.topBar}>
+          <Link href="/(auth)/login" asChild>
+            <TouchableOpacity style={styles.backButton}>
+              <MaterialIcons name="arrow-back-ios-new" size={24} color={textColor} />
+            </TouchableOpacity>
+          </Link>
         </View>
-      </View>
-    </ThemedView>
+
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <Text style={[styles.headline, { color: textColor }]}>
+              Forgot Password?
+            </Text>
+            <Text style={[styles.bodyText, { color: textSecondaryColor }]}>
+              Don't worry! It happens. Please enter the email associated with your account.
+            </Text>
+
+            <View style={styles.spacer} />
+
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
+                  placeholder="Enter your email"
+                  placeholderTextColor={textSecondaryColor}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: primaryColor }]}
+                onPress={handleSendResetLink}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.actionButtonText}>Send Instructions</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </ThemedView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -117,6 +128,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   content: {
     flex: 1,

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Link, useRouter } from 'expo-router';
@@ -36,144 +36,156 @@ export default function LoginScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <View style={[styles.logoWrapper, { backgroundColor: `${primaryColor}1a`, transform: [{ rotate: '3deg' }] }]}>
-            <MaterialIcons name="savings" size={40} color={primaryColor} />
-          </View>
-          <View style={styles.decorationDot}>
-            <MaterialIcons name="currency-exchange" size={14} color="white" />
-          </View>
-        </View>
-
-        <Text style={[styles.title, { color: textColor }]}>
-          Welcome Back
-        </Text>
-
-        <Text style={[styles.subtitle, { color: textSecondaryColor }]}>
-          Optimize your grocery budget with CentimosVE.
-        </Text>
-      </View>
-
-      {/* Form Section */}
-      <View style={styles.form}>
-        {/* Email Field */}
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: textColor }]}>Email Address</Text>
-          <View style={styles.inputContainer}>
-            <View style={styles.inputIconContainer}>
-              <MaterialIcons name="mail" size={20} color={textSecondaryColor} />
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <View style={[styles.logoWrapper, { backgroundColor: `${primaryColor}1a`, transform: [{ rotate: '3deg' }] }]}>
+                <MaterialIcons name="savings" size={40} color={primaryColor} />
+              </View>
+              <View style={styles.decorationDot}>
+                <MaterialIcons name="currency-exchange" size={14} color="white" />
+              </View>
             </View>
-            <TextInput
-              style={[styles.input, { color: textColor, backgroundColor: surfaceColor }]}
-              placeholder="user@example.com"
-              placeholderTextColor="#9CA3AF"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-        </View>
 
-        {/* Password Field */}
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: textColor }]}>Password</Text>
-          <View style={styles.inputContainer}>
-            <View style={styles.inputIconContainer}>
-              <MaterialIcons name="lock" size={20} color={textSecondaryColor} />
-            </View>
-            <TextInput
-              style={[styles.input, { color: textColor, backgroundColor: surfaceColor }]}
-              placeholder="••••••••"
-              placeholderTextColor="#9CA3AF"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
-            <TouchableOpacity style={styles.passwordToggle} onPress={togglePasswordVisibility}>
-              <MaterialIcons
-                name={showPassword ? "visibility" : "visibility-off"}
-                size={20}
-                color={textSecondaryColor}
-              />
-            </TouchableOpacity>
+            <Text style={[styles.title, { color: textColor }]}>
+              Welcome Back
+            </Text>
+
+            <Text style={[styles.subtitle, { color: textSecondaryColor }]}>
+              Optimize your grocery budget with CentimosVE.
+            </Text>
           </View>
-          <Link href="/(auth)/forgot-password" asChild>
+
+          {/* Form Section */}
+          <View style={styles.form}>
+            {/* Email Field */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textColor }]}>Email Address</Text>
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="mail" size={20} color={textSecondaryColor} />
+                </View>
+                <TextInput
+                  style={[styles.input, { color: textColor, backgroundColor: surfaceColor }]}
+                  placeholder="user@example.com"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            {/* Password Field */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: textColor }]}>Password</Text>
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIconContainer}>
+                  <MaterialIcons name="lock" size={20} color={textSecondaryColor} />
+                </View>
+                <TextInput
+                  style={[styles.input, { color: textColor, backgroundColor: surfaceColor }]}
+                  placeholder="••••••••"
+                  placeholderTextColor="#9CA3AF"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity style={styles.passwordToggle} onPress={togglePasswordVisibility}>
+                  <MaterialIcons
+                    name={showPassword ? "visibility" : "visibility-off"}
+                    size={20}
+                    color={textSecondaryColor}
+                  />
+                </TouchableOpacity>
+              </View>
+              <Link href="/(auth)/forgot-password" asChild>
+                <TouchableOpacity>
+                   <Text style={[styles.forgotPassword, { color: primaryColor }]}>
+                     Forgot Password?
+                   </Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+
+            {/* Main Actions */}
+            <View style={styles.actions}>
+              <View style={styles.buttonGroup}>
+                <TouchableOpacity
+                  style={[styles.loginButton, { backgroundColor: primaryColor }]}
+                  onPress={handleLogin}
+                >
+                  <Text style={styles.loginButtonText}>Log In</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.faceIdButton}>
+                  <MaterialIcons name="face" size={28} color={primaryColor} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Social Login */}
+          <View style={styles.socialSection}>
+            <View style={styles.dividerContainer}>
+              <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
+              <Text style={[styles.dividerText, { color: useThemeColor({}, 'textSecondary') }]}>
+                Or continue with
+              </Text>
+              <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
+            </View>
+
+            <View style={styles.socialButtons}>
+              <TouchableOpacity style={[styles.socialButton, { backgroundColor: surfaceColor }]}>
+                <MaterialIcons name="mail" size={20} color="#4285F4" />
+                <Text style={[styles.socialButtonText, { color: textColor }]}>Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.socialButton, { backgroundColor: surfaceColor }]}>
+                <MaterialIcons name="apple" size={20} color={textColor} />
+                <Text style={[styles.socialButtonText, { color: textColor }]}>Apple</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
+            Don't have an account?{' '}
+          </Text>
+          <Link href="/(auth)/register" asChild>
             <TouchableOpacity>
-               <Text style={[styles.forgotPassword, { color: primaryColor }]}>
-                 Forgot Password?
-               </Text>
+               <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Sign Up</Text>
             </TouchableOpacity>
           </Link>
         </View>
-
-        {/* Main Actions */}
-        <View style={styles.actions}>
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity
-              style={[styles.loginButton, { backgroundColor: primaryColor }]}
-              onPress={handleLogin}
-            >
-              <Text style={styles.loginButtonText}>Log In</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.faceIdButton}>
-              <MaterialIcons name="face" size={28} color={primaryColor} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Social Login */}
-      <View style={styles.socialSection}>
-        <View style={styles.dividerContainer}>
-          <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
-          <Text style={[styles.dividerText, { color: useThemeColor({}, 'textSecondary') }]}>
-            Or continue with
-          </Text>
-          <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
-        </View>
-
-        <View style={styles.socialButtons}>
-          <TouchableOpacity style={[styles.socialButton, { backgroundColor: surfaceColor }]}>
-            <MaterialIcons name="mail" size={20} color="#4285F4" />
-            <Text style={[styles.socialButtonText, { color: textColor }]}>Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.socialButton, { backgroundColor: surfaceColor }]}>
-            <MaterialIcons name="apple" size={20} color={textColor} />
-            <Text style={[styles.socialButtonText, { color: textColor }]}>Apple</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
-          Don't have an account?{' '}
-        </Text>
-        <Link href="/(auth)/register" asChild>
-          <TouchableOpacity>
-             <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Sign Up</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
-    </ThemedView>
+      </ThemedView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#f8fcfa',
     paddingHorizontal: 24,
     paddingTop: 40,
-    paddingBottom: 32,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     alignItems: 'center',
@@ -359,7 +371,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 24,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   footerText: {
     fontSize: 14,
