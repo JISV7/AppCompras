@@ -48,5 +48,6 @@ class ListItem(Base):
     added_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()
     )
+    store_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("stores.store_id"), nullable=True)
 
     shopping_list = relationship("ShoppingList", back_populates="items")

@@ -77,4 +77,25 @@ export const getUserProfile = async () => {
   }
 };
 
+interface Store {
+  store_id: string;
+  name: string;
+}
+
+export const getStores = async (): Promise<Store[]> => {
+  // For now, return hardcoded stores. Later connect to backend.
+  return [
+    { store_id: "a1b2c3d4-e5f6-7890-1234-567890abcdef", name: "Farmatodo" },
+    { store_id: "b2c3d4e5-f6a7-8901-2345-67890abcdef1", name: "Bio Mercado" },
+    { store_id: "c3d4e5f6-a7b8-9012-3456-7890abcdef12", name: "Excelsior Gama" },
+  ];
+  // try {
+  //   const response = await api.get('/stores/');
+  //   return response.data;
+  // } catch (error) {
+  //   console.error("Failed to fetch stores", error);
+  //   return [];
+  // }
+};
+
 export default api;

@@ -9,6 +9,7 @@ from src.schemas.common import BaseSchema
 class ListItemCreate(BaseSchema):
     product_barcode: str
     quantity: int = 1
+    store_id: Optional[UUID] = None
 
 
 class ListItemRead(BaseSchema):
@@ -18,12 +19,14 @@ class ListItemRead(BaseSchema):
     planned_price: Optional[float] = None
     is_purchased: bool
     added_at: datetime
+    store_id: Optional[UUID] = None
 
 
 class ListItemUpdate(BaseSchema):
     quantity: Optional[int] = None
     planned_price: Optional[float] = None
     is_purchased: Optional[bool] = None
+    store_id: Optional[UUID] = None
 
 
 # List Schemas
@@ -37,7 +40,7 @@ class ShoppingListUpdate(BaseSchema):
     name: Optional[str] = None
     budget_limit: Optional[float] = None
     currency: Optional[str] = None
-    status: Optional[str] = None
+    store_id: Optional[UUID] = None
 
 
 class ShoppingListRead(BaseSchema):

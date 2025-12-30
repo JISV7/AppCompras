@@ -7,6 +7,7 @@ export interface ListItem {
     is_purchased: boolean;
     added_at?: string;
     planned_price?: number;
+    store_id?: string;
 }
 
 export interface ShoppingList {
@@ -53,6 +54,11 @@ export const deleteListItem = async (listId: string, itemId: string): Promise<vo
     await api.delete(`/lists/${listId}/items/${itemId}`);
 };
 
-export const updateListItem = async (listId: string, itemId: string, data: { quantity?: number; is_purchased?: boolean; planned_price?: number }): Promise<void> => {
+export const updateListItem = async (listId: string, itemId: string, data: { quantity?: number; is_purchased?: boolean; planned_price?: number; store_id?: string }): Promise<void> => {
     await api.put(`/lists/${listId}/items/${itemId}`, data);
+};
+
+export const completeShoppingList = async (listId: string, storeId: string): Promise<ShoppingList> => {
+    const response = await api.post(`/lists/${listId}/complete?store_id=${storeId}`);
+    return response.data;
 };

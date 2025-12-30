@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert, Switch } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useState, useEffect } from 'react';
@@ -13,17 +13,18 @@ interface EnrichedListItem {
     predictedPrice?: number; // AI / Exchange Rate 
     added_at?: string; // We'll pass this string
     planned_price?: number;
+    is_purchased?: boolean;
+    store_id?: string;
 }
 
 interface ListItemSheetProps {
     visible: boolean;
     item: EnrichedListItem | null;
     onClose: () => void;
-    onUpdateQuantity?: (newQty: number) => void;
-    onUpdatePrice?: (newPrice: number) => void;
+    onUpdateItem?: (updatedFields: { quantity?: number; planned_price?: number; is_purchased?: boolean; store_id?: string }) => void;
 }
 
-export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpdatePrice }: ListItemSheetProps) {
+export function ListItemSheet({ visible, item, onClose, onUpdateItem }: ListItemSheetProps) {
     const sheetColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'textMain');
     const subTextColor = '#888';
@@ -35,6 +36,9 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
     const [isEditingPrice, setIsEditingPrice] = useState(false);
     const [priceValue, setPriceValue] = useState('');
 
+    const [isPurchasedState, setIsPurchasedState] = useState(item?.is_purchased || false);
+    const [selectedStoreId, setSelectedStoreId] = useState(item?.store_id || null);
+
     const saveLock = React.useRef(false);
 
     useEffect(() => {
@@ -43,8 +47,10 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
             setIsEditingPrice(false);
             setQtyValue('');
             setPriceValue('');
+            setIsPurchasedState(item?.is_purchased || false);
+            setSelectedStoreId(item?.store_id || null);
         }
-    }, [visible]);
+    }, [visible, item]);
 
     if (!item) return null;
 
@@ -79,7 +85,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
 
     // --- QTY Handlers ---
     const handleQtyPress = () => {
-        if (onUpdateQuantity) {
+        if (onUpdateItem) {
             saveLock.current = false;
             setQtyValue(item.quantity.toString());
             setIsEditingQty(true);
@@ -93,7 +99,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
         if (!isNaN(num) && num > 0 && num <= 99) {
             if (num !== item.quantity) {
                 saveLock.current = true;
-                onUpdateQuantity?.(num);
+                onUpdateItem?.({ quantity: num });
             }
             setIsEditingQty(false);
         } else {
@@ -104,7 +110,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
 
     // --- Price Handlers ---
     const handlePricePress = () => {
-        if (onUpdatePrice) {
+        if (onUpdateItem) {
             saveLock.current = false;
             const currentPrice = item.planned_price ?? item.estimatedPrice ?? 0;
             setPriceValue(currentPrice.toString());
@@ -119,13 +125,18 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
         if (!isNaN(price) && price >= 0) {
             if (price !== item.planned_price) {
                 saveLock.current = true;
-                onUpdatePrice?.(price);
+                onUpdateItem?.({ planned_price: price });
             }
             setIsEditingPrice(false);
         } else {
             Alert.alert("Invalid Price", "Must be 0 or greater");
             setIsEditingPrice(false);
         }
+    };
+
+    const handleTogglePurchased = (newValue: boolean) => {
+        setIsPurchasedState(newValue);
+        onUpdateItem?.({ is_purchased: newValue, store_id: selectedStoreId });
     };
 
     return (
@@ -230,6 +241,26 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
                                 <Text style={{ color: textColor, fontWeight: '500' }}>{formatDate(item.added_at)}</Text>
                             </View>
 
+                            {/* Is Purchased Toggle */}
+                            <View style={[styles.detailRow, { borderBottomColor: '#eee', borderBottomWidth: 1 }]}>
+                                <Text style={{ color: subTextColor }}>Purchased</Text>
+                                <Switch
+                                    onValueChange={handleTogglePurchased}
+                                    value={isPurchasedState}
+                                    trackColor={{ false: '#767577', true: primaryColor }}
+                                    thumbColor={isPurchasedState ? '#f4f3f4' : '#f4f3f4'}
+                                />
+                            </View>
+
+                            {/* Store ID (Placeholder) */}
+                            {isPurchasedState && ( // Only show store if purchased
+                                <View style={styles.detailRow}>
+                                    <Text style={{ color: subTextColor }}>Store</Text>
+                                    <Text style={{ color: textColor, fontWeight: '500' }}>
+                                        {selectedStoreId ? selectedStoreId : 'Select Store...'}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     </Pressable>
                 </Pressable>
@@ -241,7 +272,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
 const styles = StyleSheet.create({
     overlayWrapper: { flex: 1 },
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 400, paddingBottom: 40 },
+    sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 400, paddingBottom: 40, marginBottom: 60 },
     handle: { width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 10, alignSelf: 'center', marginBottom: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
     title: { fontSize: 20, fontWeight: 'bold' },

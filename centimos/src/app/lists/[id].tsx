@@ -1,11 +1,11 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, Modal, Pressable } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { getListDetails, addListItem, deleteListItem, updateListItem, ShoppingList, ListItem } from '@/services/lists';
-import { getProduct, getLatestExchangeRate } from '@/services/api';
+import { getListDetails, addListItem, deleteListItem, updateListItem, completeShoppingList, ShoppingList, ListItem } from '@/services/lists';
+import { getProduct, getLatestExchangeRate, getStores } from '@/services/api';
 import { normalizeToGtin13 } from '@/services/validate';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { SwipeableRow } from '@/components/common/SwipeableRow';
 import { ListItemSheet } from '@/components/lists/ListItemSheet';
 import { CameraModal } from '@/components/scanner/CameraModal';
@@ -19,6 +19,13 @@ interface EnrichedListItem extends ListItem {
   predictedPrice?: number;
   added_at?: string;
   planned_price?: number;
+  is_purchased?: boolean; // Added
+  store_id?: string;      // Added
+}
+
+interface Store {
+  store_id: string;
+  name: string;
 }
 
 export default function ListDetailScreen() {
@@ -29,6 +36,7 @@ export default function ListDetailScreen() {
   const cardColor = useThemeColor({}, 'surfaceLight');
   const textColor = useThemeColor({}, 'textMain');
   const primaryColor = useThemeColor({}, 'primary');
+  const subTextColor = useThemeColor({}, 'textSecondary'); // Added
 
   // State
   const [list, setList] = useState<ShoppingList | null>(null);
@@ -43,6 +51,12 @@ export default function ListDetailScreen() {
   const [isScanning, setIsScanning] = useState(false);
   const [isManualAdd, setIsManualAdd] = useState(false); // New state for manual add modal
 
+  // State for completing list
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [availableStores, setAvailableStores] = useState<Store[]>([]);
+  const [selectedStoreForCompletion, setSelectedStoreForCompletion] = useState<string | null>(null);
+  const [completingList, setCompletingList] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, [id]);
@@ -50,17 +64,20 @@ export default function ListDetailScreen() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [listData, rateData] = await Promise.all([
+      const [listData, rateData, storesData] = await Promise.all([
         getListDetails(id),
-        getLatestExchangeRate()
+        getLatestExchangeRate(),
+        getStores() // Fetch stores
       ]);
 
       setList(listData);
       if (rateData) setExchangeRate(rateData.rate_to_ves);
+      setAvailableStores(storesData); // Set available stores
 
       await processItems(listData, rateData?.rate_to_ves);
 
     } catch (error) {
+      console.error("Error fetching data:", error);
       Alert.alert("Error", "Could not load data");
     } finally {
       setLoading(false);
@@ -82,7 +99,9 @@ export default function ListDetailScreen() {
             estimatedPrice: avgPrice,
             predictedPrice: currentPrice,
             added_at: item.added_at,
-            planned_price: item.planned_price
+            planned_price: item.planned_price,
+            is_purchased: item.is_purchased, // Added
+            store_id: item.store_id,         // Added
           };
         } catch {
           return { ...item, productName: "Product not found", estimatedPrice: 0, predictedPrice: 0 };
@@ -137,54 +156,63 @@ export default function ListDetailScreen() {
     }
   };
 
-  const handleUpdateQuantity = async (newQty: number) => {
+  const handleCompleteListPress = () => {
+    // Only allow completing if there are items and a store is selected by default, or provide selection
+    if (availableStores.length === 0) {
+      Alert.alert("No Stores", "Please add stores to log prices when completing a list.");
+      return;
+    }
+    setSelectedStoreForCompletion(availableStores[0].store_id); // Auto-select first store for convenience
+    setShowCompleteModal(true);
+  };
+
+  const handleConfirmCompleteList = async () => {
+    if (!selectedStoreForCompletion) {
+      Alert.alert("No Store Selected", "Please select a store to complete the list.");
+      return;
+    }
+
+    setCompletingList(true);
+    try {
+      await completeShoppingList(id, selectedStoreForCompletion);
+      Alert.alert("Success", "List completed and prices logged!");
+      setShowCompleteModal(false);
+      fetchData(); // Re-fetch data to update status and items
+    } catch (error) {
+      console.error("Error completing list:", error);
+      Alert.alert("Error", "Could not complete list.");
+    } finally {
+      setCompletingList(false);
+    }
+  };
+
+  const handleUpdateItem = async (updatedFields: { quantity?: number; planned_price?: number; is_purchased?: boolean; store_id?: string }) => {
     if (!selectedItem) return;
 
     const originalItems = [...items];
     const itemToUpdate = selectedItem;
 
+    // Optimistically update the UI
     const updatedItems = items.map(i =>
-      i.item_id === itemToUpdate.item_id ? { ...i, quantity: newQty } : i
+      i.item_id === itemToUpdate.item_id ? { ...i, ...updatedFields } : i
     );
     setItems(updatedItems);
     calculateTotal(updatedItems);
-
-    setSelectedItem({ ...itemToUpdate, quantity: newQty });
-
-    try {
-      await updateListItem(id, itemToUpdate.item_id, { quantity: newQty });
-    } catch (e) {
-      setItems(originalItems);
-      calculateTotal(originalItems);
-      setSelectedItem(itemToUpdate);
-      Alert.alert("Error", "Could not update quantity");
-    }
-  };
-
-  const handleUpdatePrice = async (newPrice: number) => {
-    if (!selectedItem) return;
-
-    const originalItems = [...items];
-    const itemToUpdate = selectedItem;
-
-    const updatedItems = items.map(i =>
-      i.item_id === itemToUpdate.item_id ? { ...i, planned_price: newPrice } : i
-    );
-    setItems(updatedItems);
-    calculateTotal(updatedItems);
-
-    setSelectedItem({ ...itemToUpdate, planned_price: newPrice });
+    setSelectedItem({ ...itemToUpdate, ...updatedFields });
 
     try {
-      await updateListItem(id, itemToUpdate.item_id, { planned_price: newPrice });
+      await updateListItem(id, itemToUpdate.item_id, updatedFields);
+      // Re-fetch list to ensure consistency and refresh calculated totals/statuses from backend
+      fetchData();
     } catch (e) {
-      setItems(originalItems);
+      console.error("Failed to update item:", e);
+      setItems(originalItems); // Revert on error
       calculateTotal(originalItems);
       setSelectedItem(itemToUpdate);
-      Alert.alert("Error", "Could not update price");
+      Alert.alert("Error", "Could not update item.");
     }
   };
-
+  
   const renderItem = ({ item }: { item: EnrichedListItem }) => (
     <SwipeableRow onDelete={() => handleRemoveItem(item.item_id)} height={80} bottomMargin={10}>
       <TouchableOpacity
@@ -240,6 +268,10 @@ export default function ListDetailScreen() {
 
       {showActions && (
         <View style={styles.actionMenu}>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleCompleteListPress}>
+            <MaterialIcons name="done-all" size={24} color="white" />
+            <Text style={styles.actionText}>Complete List</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleManualAdd}>
             <Ionicons name="keypad" size={24} color="white" />
             <Text style={styles.actionText}>Type Code</Text>
@@ -275,9 +307,68 @@ export default function ListDetailScreen() {
         visible={!!selectedItem}
         item={selectedItem}
         onClose={() => setSelectedItem(null)}
-        onUpdateQuantity={handleUpdateQuantity}
-        onUpdatePrice={handleUpdatePrice}
+        onUpdateItem={handleUpdateItem}
       />
+
+      {/* Complete List Modal */}
+      <Modal
+        visible={showCompleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCompleteModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowCompleteModal(false)}>
+          <Pressable style={[styles.completeModalContent, { backgroundColor: cardColor }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={[styles.completeModalTitle, { color: textColor }]}>Complete List</Text>
+            <Text style={[styles.completeModalSubtitle, { color: subTextColor }]}>
+              Mark all unpurchased items as purchased and log their prices.
+            </Text>
+
+            {/* Store Selection */}
+            {availableStores.length > 0 ? (
+              <View style={styles.storeSelectContainer}>
+                <Text style={[styles.storeSelectLabel, { color: textColor }]}>Purchased from:</Text>
+                <View style={styles.storeOptionContainer}>
+                  {availableStores.map((store) => (
+                    <TouchableOpacity
+                      key={store.store_id}
+                      style={[
+                        styles.storeOption,
+                        {
+                          backgroundColor: selectedStoreForCompletion === store.store_id ? primaryColor : subTextColor,
+                          borderColor: selectedStoreForCompletion === store.store_id ? primaryColor : subTextColor,
+                        }
+                      ]}
+                      onPress={() => setSelectedStoreForCompletion(store.store_id)}
+                    >
+                      <Text style={[styles.storeOptionText, { color: 'white' }]}>{store.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <Text style={{ color: subTextColor, textAlign: 'center', marginBottom: 20 }}>No stores available. Add one first!</Text>
+            )}
+
+            <TouchableOpacity
+              style={[styles.completeButton, { backgroundColor: primaryColor, opacity: completingList || !selectedStoreForCompletion ? 0.7 : 1 }]}
+              onPress={handleConfirmCompleteList}
+              disabled={completingList || !selectedStoreForCompletion}
+            >
+              {completingList ? <ActivityIndicator color="white" /> : <Text style={styles.completeButtonText}>Confirm Completion</Text>}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelCompleteButton}
+              onPress={() => setShowCompleteModal(false)}
+              disabled={completingList}
+            >
+              <Text style={[styles.cancelCompleteButtonText, { color: subTextColor }]}>Cancel</Text>
+            </TouchableOpacity>
+
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -293,9 +384,90 @@ const styles = StyleSheet.create({
   itemName: { fontWeight: '600', fontSize: 16, marginBottom: 4 },
   qtyBadge: { backgroundColor: '#E3F2FD', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
 
-  fab: { position: 'absolute', bottom: 30, right: 30, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5, zIndex: 10 },
+  fab: { position: 'absolute', bottom: 90, right: 30, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5, zIndex: 10 },
 
   actionMenu: { position: 'absolute', bottom: 100, right: 30, gap: 15, alignItems: 'flex-end', zIndex: 10 },
   actionBtn: { flexDirection: 'row', backgroundColor: '#455A64', padding: 12, borderRadius: 25, alignItems: 'center', gap: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 },
-  actionText: { color: 'white', fontWeight: 'bold' }
+  actionText: { color: 'white', fontWeight: 'bold' },
+
+  // Complete List Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completeModalContent: {
+    width: '85%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 25,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  completeModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  completeModalSubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  storeSelectContainer: {
+    width: '100%',
+    marginBottom: 25,
+  },
+  storeSelectLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  storeOptionContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  storeOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  storeOptionText: {
+    fontWeight: 'bold',
+  },
+  completeButton: {
+    width: '100%',
+    paddingVertical: 15,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  completeButtonText: {
+    color: 'white',
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  cancelCompleteButton: {
+    paddingVertical: 10,
+  },
+  cancelCompleteButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
 });

@@ -6,6 +6,8 @@ from sqlalchemy import select
 from src.core.deps import CurrentUser, SessionDep
 from src.models.product import Product
 from src.models.shopping_list import ListItem, ShoppingList
+from src.models.store import Store
+from src.models.price import PriceLog
 from src.schemas.shopping_list import (
     ListItemCreate,
     ListItemUpdate,
@@ -13,6 +15,7 @@ from src.schemas.shopping_list import (
     ShoppingListRead,
     ShoppingListUpdate,
 )
+from src.schemas.price import PriceLogCreate
 
 router = APIRouter()
 
@@ -92,6 +95,64 @@ async def delete_list(list_id: uuid.UUID, db: SessionDep, current_user: CurrentU
 
     await db.delete(shopping_list)
     await db.commit()
+
+
+@router.post("/{list_id}/complete", response_model=ShoppingListRead)
+async def complete_list(
+    list_id: uuid.UUID,
+    db: SessionDep,
+    current_user: CurrentUser,
+    store_id: uuid.UUID # Assume all items were bought at this store for simplicity for now
+):
+    # 1. Verify list exists and belongs to user
+    result = await db.execute(
+        select(ShoppingList).where(ShoppingList.list_id == list_id)
+    )
+    shopping_list = result.scalars().first()
+    if not shopping_list:
+        raise HTTPException(status_code=404, detail="List not found")
+    if shopping_list.user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to complete this list")
+
+    # 2. Verify Store exists
+    store_check = await db.execute(select(Store).where(Store.store_id == store_id))
+    if not store_check.scalars().first():
+        raise HTTPException(status_code=404, detail=f"Store with ID {store_id} not found.")
+
+    # 3. Process each item in the list
+    for item in shopping_list.items:
+        if not item.is_purchased and item.planned_price is not None:
+            # Mark as purchased
+            item.is_purchased = True
+            item.store_id = store_id # Assign the store to the item
+
+            # Log price if not already logged (avoid duplicates from update_item)
+            existing_price_log = await db.execute(
+                select(PriceLog).where(
+                    PriceLog.product_barcode == item.product_barcode,
+                    PriceLog.user_id == current_user.user_id,
+                    PriceLog.store_id == store_id,
+                    PriceLog.price == item.planned_price
+                )
+            )
+            if not existing_price_log.scalars().first():
+                price_log_create = PriceLogCreate(
+                    product_barcode=item.product_barcode,
+                    store_id=store_id,
+                    price=item.planned_price,
+                    currency=shopping_list.currency
+                )
+                new_price_log = PriceLog(**price_log_create.model_dump(), user_id=current_user.user_id)
+                db.add(new_price_log)
+            db.add(item) # Add updated item to session
+    
+    # 4. Update shopping list status
+    shopping_list.status = "COMPLETED"
+    db.add(shopping_list)
+
+    await db.commit()
+    await db.refresh(shopping_list) # Refresh to get latest state, including updated items
+    return shopping_list
 
 
 @router.post("/{list_id}/items", response_model=ShoppingListRead)
@@ -215,6 +276,32 @@ async def update_item(
     update_data = item_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(item, field, value)
+
+    # If item is marked as purchased, log the price
+    if item.is_purchased and item.planned_price is not None and item.store_id is not None:
+        # Verify Store exists
+        store_check = await db.execute(select(Store).where(Store.store_id == item.store_id))
+        if not store_check.scalars().first():
+            raise HTTPException(status_code=404, detail=f"Store with ID {item.store_id} not found.")
+        
+        # Check if a price log already exists for this item, user, store, and price to avoid duplicates
+        existing_price_log = await db.execute(
+            select(PriceLog).where(
+                PriceLog.product_barcode == item.product_barcode,
+                PriceLog.user_id == current_user.user_id,
+                PriceLog.store_id == item.store_id,
+                PriceLog.price == item.planned_price
+            )
+        )
+        if not existing_price_log.scalars().first():
+            price_log_create = PriceLogCreate(
+                product_barcode=item.product_barcode,
+                store_id=item.store_id,
+                price=item.planned_price,
+                currency=shopping_list.currency # Use the list's currency
+            )
+            new_price_log = PriceLog(**price_log_create.model_dump(), user_id=current_user.user_id)
+            db.add(new_price_log)
 
     db.add(item)
     await db.commit()
