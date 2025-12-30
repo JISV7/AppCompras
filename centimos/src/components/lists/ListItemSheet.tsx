@@ -50,7 +50,31 @@ export function ListItemSheet({ visible, item, onClose, onUpdateQuantity, onUpda
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Unknown';
-        return new Date(dateString).toLocaleString();
+
+        // The date string from the backend is naive (e.g., "2025-12-29 22:05:27.984079")
+        // but represents UTC time. We need to parse it as such.
+        // We convert it to ISO 8601 format by replacing the space with 'T' and appending 'Z'.
+        const isoUtcString = dateString.includes('T') ? dateString : dateString.replace(' ', 'T') + 'Z';
+
+        const date = new Date(isoUtcString);
+
+        // Options for formatting. Using undefined for locale uses the device's default.
+        const dateOptions: Intl.DateTimeFormatOptions = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        };
+
+        const timeOptions: Intl.DateTimeFormatOptions = {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true, // Use 12-hour format with AM/PM
+        };
+
+        const formattedDate = date.toLocaleDateString(undefined, dateOptions);
+        const formattedTime = date.toLocaleTimeString(undefined, timeOptions);
+
+        return `${formattedDate}, ${formattedTime}`;
     };
 
     // --- QTY Handlers ---

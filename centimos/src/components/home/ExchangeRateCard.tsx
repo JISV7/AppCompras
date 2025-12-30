@@ -18,10 +18,24 @@ export function ExchangeRateCard({ rate, loading }: ExchangeRateCardProps) {
   const subTextColor = useThemeColor({}, 'textSecondary');
   const primaryColor = useThemeColor({}, 'primary');
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('es-VE', {
-      hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short'
-    });
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'No data';
+
+    // The date string from the backend is naive (e.g., "2025-12-29 22:05:27.984079")
+    // but represents UTC time. We need to parse it as such.
+    const isoUtcString = dateString.includes('T') ? dateString : dateString.replace(' ', 'T') + 'Z';
+    const date = new Date(isoUtcString);
+
+    // Using undefined for locale uses the device's default.
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    };
+
+    return date.toLocaleString(undefined, options);
   };
 
   return (
