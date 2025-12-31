@@ -109,7 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        if (error instanceof AxiosError && error.response?.status === 404) {
           await logout();
         }
-      const msg = error.response?.data?.detail || 'Login failed';
+      let msg = error.response?.data?.detail || 'Login failed';
+      if (Array.isArray(msg)) {
+        msg = msg.map((err: any) => err.msg).join('\n');
+      }
       Alert.alert('Error', msg);
       throw error;
     }
@@ -135,7 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     } catch (error: any) {
-      const msg = error.response?.data?.detail || 'Registration failed';
+      let msg = error.response?.data?.detail || 'Registration failed';
+      if (Array.isArray(msg)) {
+        msg = msg.map((err: any) => err.msg).join('\n');
+      }
       Alert.alert('Error', msg);
       throw error;
     }
