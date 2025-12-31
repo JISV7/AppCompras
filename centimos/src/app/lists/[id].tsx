@@ -457,15 +457,15 @@ export default function ListDetailScreen() {
                                 <TouchableOpacity
                                     key={store.store_id}
                                     style={[
-                                        styles.storeOption,
-                                        {
-                                            backgroundColor: selectedStoreForCompletion === store.store_id ? primaryColor : subTextColor,
-                                            borderColor: selectedStoreForCompletion === store.store_id ? primaryColor : subTextColor,
-                                        }
+                                        styles.searchResultItem,
+                                        selectedStoreForCompletion === store.store_id && { backgroundColor: `${primaryColor}22` }
                                     ]}
                                     onPress={() => setSelectedStoreForCompletion(store.store_id)}
                                 >
-                                    <Text style={[styles.storeOptionText, { color: 'white' }]}>{store.name}</Text>
+                                    <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
+                                    <Text style={styles.searchResultAddress} numberOfLines={1}>
+                                        {store.address || "No address provided"}
+                                    </Text>
                                 </TouchableOpacity>
                             ))
                         ) : (
@@ -561,15 +561,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  storeOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  storeOptionText: {
-    fontWeight: 'bold',
-  },
   completeButton: {
     width: '100%',
     paddingVertical: 15,
@@ -643,11 +634,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   nearbyList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'center',
     marginTop: 10,
     marginBottom: 15,
+    gap: 8,
   },
 });

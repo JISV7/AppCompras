@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable, Platform, Linking, Alert } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -30,15 +30,14 @@ export function StoreDetailModal({ visible, store, distance, onClose }: StoreDet
   const openInMaps = () => {
     if (!store.latitude || !store.longitude) return;
     
-    const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
-    const latLng = `${store.latitude},${store.longitude}`;
-    const label = store.name;
-    const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`
-    });
+    // Using Google Maps Search API URL ensures it opens in the Google Maps app 
+    // and just shows the location without starting a trip immediately.
+    const url = `https://www.google.com/maps/search/?api=1&query=${store.latitude},${store.longitude}`;
 
-    if (url) Linking.openURL(url);
+    Linking.openURL(url).catch(err => {
+      console.error("Couldn't load page", err);
+      Alert.alert("Error", "Could not open Maps.");
+    });
   };
 
   return (

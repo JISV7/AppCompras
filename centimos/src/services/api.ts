@@ -102,7 +102,7 @@ export const searchStores = async (query: string): Promise<Store[]> => {
   }
 };
 
-export const getNearbyStores = async (lat: number, lon: number, radius: number = 1000): Promise<Store[]> => {
+export const getNearbyStores = async (lat: number, lon: number, radius: number = 2345): Promise<Store[]> => {
   try {
     const response = await api.get('/stores/nearby', { 
       params: { lat, lon, radius_meters: radius } 

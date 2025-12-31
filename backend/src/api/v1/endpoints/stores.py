@@ -73,7 +73,7 @@ async def get_nearby_stores(
     db: SessionDep,
     lat: float,
     lon: float,
-    radius_meters: int = Query(1000, ge=100, le=50000),
+    radius_meters: int = Query(2345, ge=100, le=50000),
 ):
     user_location = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326).cast(
         type_=Store.location.type
