@@ -49,7 +49,17 @@ export const getLatestExchangeRate = async () => {
   }
 };
 
-export const getProduct = async (barcode: string) => {
+export interface Product {
+  barcode: string;
+  name: string;
+  brand?: string;
+  image_url?: string;
+  data_source: string;
+  estimated_price_usd?: number;
+  predicted_price_usd?: number;
+}
+
+export const getProduct = async (barcode: string): Promise<Product | null> => {
   try {
     const response = await api.get(`/products/${barcode}`);
     return response.data;
@@ -64,6 +74,26 @@ export const getProduct = async (barcode: string) => {
       console.error(`Failed to get product with barcode ${barcode}:`, error);
     }
     throw error; // Network error or other issue
+  }
+};
+
+export const searchProducts = async (query: string): Promise<Product[]> => {
+  try {
+    const response = await api.get('/products/', { params: { q: query } });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to search products", error);
+    return [];
+  }
+};
+
+export const getExchangeRateHistory = async (limit: number = 30) => {
+  try {
+    const response = await api.get('/exchange-rates/history', { params: { limit } });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch exchange rate history", error);
+    return [];
   }
 };
 

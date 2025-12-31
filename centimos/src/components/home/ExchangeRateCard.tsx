@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -10,9 +10,10 @@ interface ExchangeRateCardProps {
     recorded_at: string;
   } | null;
   loading: boolean;
+  onPress?: () => void;
 }
 
-export function ExchangeRateCard({ rate, loading }: ExchangeRateCardProps) {
+export function ExchangeRateCard({ rate, loading, onPress }: ExchangeRateCardProps) {
   const cardColor = useThemeColor({}, 'surfaceLight');
   const textColor = useThemeColor({}, 'textMain');
   const subTextColor = useThemeColor({}, 'textSecondary');
@@ -39,7 +40,11 @@ export function ExchangeRateCard({ rate, loading }: ExchangeRateCardProps) {
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: cardColor }]}>
+    <TouchableOpacity 
+      style={[styles.card, { backgroundColor: cardColor }]} 
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.header}>
         <View style={styles.iconContainer}>
           <FontAwesome5 name="money-bill-wave" size={14} color="white" />
@@ -65,7 +70,7 @@ export function ExchangeRateCard({ rate, loading }: ExchangeRateCardProps) {
           </Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from sqlalchemy import select
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Query
+from sqlalchemy import select, or_
 from sqlalchemy.dialects.postgresql import insert
 
 from src.core.deps import CurrentUser, SessionDep
@@ -9,6 +10,36 @@ from src.schemas.product import ProductCreate, ProductRead
 from src.services.external_product import fetch_product_from_off, normalize_to_gtin13, validate_gtin
 
 router = APIRouter()
+
+
+@router.get("/", response_model=List[ProductRead])
+async def search_products(
+    db: SessionDep,
+    current_user: CurrentUser,
+    q: Optional[str] = Query(None, description="Search query for name, brand, or category"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    stmt = select(Product)
+    if q:
+        search_filter = f"%{q}%"
+        stmt = stmt.where(
+            or_(
+                Product.name.ilike(search_filter),
+                Product.brand.ilike(search_filter),
+                Product.category.ilike(search_filter),
+                Product.barcode.ilike(search_filter),
+            )
+        )
+    
+    stmt = stmt.limit(limit).offset(offset).order_by(Product.name.asc())
+    result = await db.execute(stmt)
+    products = result.scalars().all()
+    
+    # Enrich with estimates if needed (optional for search list to keep it fast, 
+    # but the schema requires it or allows null)
+    # For now, return basic product data as per ProductRead
+    return products
 
 
 @router.get("/{barcode}", response_model=ProductRead)

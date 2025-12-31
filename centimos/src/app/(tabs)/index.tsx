@@ -4,25 +4,31 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useState, useEffect, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { getLatestExchangeRate, getUserProfile } from '@/services/api';
+import { getLatestExchangeRate, getUserProfile, searchProducts, Product } from '@/services/api';
 import { useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { addListItem } from '@/services/lists';
 
 // Import our new Lego blocks
 import { ExchangeRateCard } from '@/components/home/ExchangeRateCard';
 import { ScannerAction } from '@/components/home/ScannerAction';
 import { CameraModal } from '@/components/scanner/CameraModal';
-import { getProduct } from '@/services/api'; // Import the new service
-import { ProductSheet } from '@/components/scanner/ProductSheet'; // Import the new sheet
+import { getProduct } from '@/services/api'; 
+import { ProductSheet } from '@/components/scanner/ProductSheet'; 
 import { ProfileSheet } from '@/components/home/ProfileSheet';
 import { validateGtin } from '@/services/validate';
+
+// NEW COMPONENTS
+import { ExchangeRateHistorySheet } from '@/components/home/ExchangeRateHistorySheet';
+import { ProductSearchSheet } from '@/components/home/ProductSearchSheet';
+import { ListSelectorModal } from '@/components/home/ListSelectorModal';
 
 export default function HomeScreen() {
   const color = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'textMain');
   const subTextColor = useThemeColor({}, 'textSecondary');
-  const cardColor = useThemeColor({}, 'surfaceLight'); // Needed for the quick action buttons
+  const cardColor = useThemeColor({}, 'surfaceLight'); 
   const primaryColor = useThemeColor({}, 'primary');
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -36,18 +42,27 @@ export default function HomeScreen() {
   const [user, setUser] = useState<{full_name?: string; username: string; email: string} | null>(null);
   const [profileVisible, setProfileVisible] = useState(false);
 
+  // Exchange History State
+  const [exchangeHistoryVisible, setExchangeHistoryVisible] = useState(false);
+
+  // Search Results State
+  const [searchResultsVisible, setSearchResultsVisible] = useState(false);
+  
+  // List Selection State
+  const [listSelectorVisible, setListSelectorVisible] = useState(false);
+  const [selectedProductForList, setSelectedProductForList] = useState<Product | null>(null);
+
   // Camera State
   const [isScanning, setIsScanning] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
 
-  // NEW STATE FOR PRODUCT SHEET
-  const [scannedProduct, setScannedProduct] = useState(null);
+  // NEW STATE FOR PRODUCT SHEET (Single result from barcode)
+  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
 
   const fetchData = async () => {
-    // We can run these in parallel for speed
     const [rateData, userData] = await Promise.all([
       getLatestExchangeRate(),
       getUserProfile()
@@ -70,8 +85,7 @@ export default function HomeScreen() {
   const handleLogout = async () => {
     setProfileVisible(false);
     try {
-      await logout(); // This will clear tokens and update auth state
-      // The _layout.tsx will automatically redirect to welcome screen
+      await logout();
     } catch (error) {
       console.error("Logout error:", error);
       Alert.alert("Error", "There was an issue logging out. Please try again.");
@@ -96,39 +110,34 @@ export default function HomeScreen() {
     // Check if the input looks like a barcode (8 or more digits, starting with a digit)
     const isBarcode = /^\d{8,}$/.test(barcode);
 
-    // Only validate GTIN if it looks like a barcode
-    if (isBarcode && !validateGtin(barcode)) {
-      // Show error to user
-      Alert.alert("Invalid Barcode", "Please enter a valid barcode with correct format and check digit.");
-      setIsSearching(false);
-      return;
-    }
-
-    // 1. Reset UI
-    Keyboard.dismiss(); // Hide keyboard if open
-    setSheetVisible(true);
-    setIsSearching(true);
-    setLastScannedCode(barcode);
-    setScannedProduct(null);
-
-    // 2. API Call
-    try {
-      console.log("Searching for:", barcode);
-      const product = await getProduct(barcode);
-      setScannedProduct(product);
-    } catch (error: any) {
-      console.error("Search failed", error);
-      // Handle specific error cases if needed
-      if (error.response?.status === 500) {
-        // For server errors, we still want to show the sheet but with error info
-        // The ProductSheet component should handle null product appropriately
+    if (isBarcode) {
+      if (!validateGtin(barcode)) {
+        Alert.alert("Invalid Barcode", "Please enter a valid barcode with correct format and check digit.");
+        return;
       }
-    } finally {
-      setIsSearching(false);
+      // 1. Reset UI
+      Keyboard.dismiss();
+      setSheetVisible(true);
+      setIsSearching(true);
+      setLastScannedCode(barcode);
+      setScannedProduct(null);
+
+      // 2. API Call
+      try {
+        const product = await getProduct(barcode);
+        setScannedProduct(product);
+      } catch (error: any) {
+        console.error("Barcode search failed", error);
+      } finally {
+        setIsSearching(false);
+      }
+    } else {
+      // It's a text search (name, brand, etc.)
+      Keyboard.dismiss();
+      setSearchResultsVisible(true);
     }
   };
 
-  // Handler 1: Camera
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setIsScanning(false);
     performSearch(data);
@@ -139,14 +148,32 @@ export default function HomeScreen() {
     setScannedProduct(null);
   };
 
-  // Handler 2: Manual Input
   const handleManualSubmit = () => {
     performSearch(searchQuery);
   };
 
   const handleRescan = () => {
     setSheetVisible(false);
-    setTimeout(() => setIsScanning(true), 300); // Small delay for smooth transition
+    setTimeout(() => setIsScanning(true), 300);
+  };
+
+  const handleProductSelect = (product: Product) => {
+    setSearchResultsVisible(false);
+    setSelectedProductForList(product);
+    setListSelectorVisible(true);
+  };
+
+  const handleListSelect = async (listId: string) => {
+    if (!selectedProductForList) return;
+    
+    try {
+      await addListItem(listId, selectedProductForList.barcode, 1);
+      Alert.alert("Éxito", `${selectedProductForList.name} agregado a la lista.`);
+      setListSelectorVisible(false);
+      setSelectedProductForList(null);
+    } catch (e) {
+      Alert.alert("Error", "No se pudo agregar el producto a la lista.");
+    }
   };
 
   return (
@@ -159,12 +186,10 @@ export default function HomeScreen() {
           <Text style={[styles.greeting, { color: subTextColor }]}>Smart Shopping</Text>
         </View>
 
-        {/* CLICKABLE PROFILE BUTTON */}
         <TouchableOpacity
           style={[styles.profileButton, { backgroundColor: cardColor }]}
-          onPress={() => setProfileVisible(true)} // <--- Opens the sheet
+          onPress={() => setProfileVisible(true)}
         >
-           {/* Show initial if user loaded, else show icon */}
            {user?.full_name || user?.username ? (
              <Text style={{fontWeight: 'bold', color: primaryColor}}>
                {(user.full_name || user.username)?.charAt(0)}
@@ -180,27 +205,35 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* 2. Components */}
-        <ExchangeRateCard rate={rate} loading={loading} />
+        <ExchangeRateCard 
+          rate={rate} 
+          loading={loading} 
+          onPress={() => setExchangeHistoryVisible(true)}
+        />
 
-        {/* UPDATED COMPONENT */}
         <ScannerAction
           onScanPress={handleStartScanning}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onSearchSubmit={handleManualSubmit} // <--- Connected!
+          onSearchSubmit={handleManualSubmit}
         />
 
-        {/* 3. Quick Actions (We can modularize this later if it grows) */}
         <Text style={[styles.sectionTitle, { color: textColor }]}>My Shopping</Text>
         <View style={styles.grid}>
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: cardColor }]}>
+          <TouchableOpacity 
+            style={[styles.actionCard, { backgroundColor: cardColor }]}
+            onPress={() => router.push('/lists')}
+          >
             <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
                <MaterialIcons name="playlist-add" size={28} color="#1976D2" />
             </View>
             <Text style={[styles.actionTitle, { color: textColor }]}>New List</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: cardColor }]}>
+          <TouchableOpacity 
+            style={[styles.actionCard, { backgroundColor: cardColor }]}
+            onPress={() => router.push('/stores')}
+          >
             <View style={[styles.actionIcon, { backgroundColor: '#F3E5F5' }]}>
                <MaterialIcons name="storefront" size={28} color="#7B1FA2" />
             </View>
@@ -209,14 +242,12 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* 4. The Hidden Camera Modal */}
       <CameraModal
         visible={isScanning}
         onClose={() => setIsScanning(false)}
         onBarcodeScanned={handleBarCodeScanned}
       />
 
-      {/* ADD THIS AT THE BOTTOM */}
       <ProductSheet
         visible={sheetVisible}
         loading={isSearching}
@@ -226,12 +257,30 @@ export default function HomeScreen() {
         onRescan={handleRescan}
       />
 
-      {/* ADD PROFILE SHEET HERE */}
       <ProfileSheet
         visible={profileVisible}
         user={user}
         onClose={() => setProfileVisible(false)}
         onLogout={handleLogout}
+      />
+
+      {/* NEW SHEETS */}
+      <ExchangeRateHistorySheet 
+        visible={exchangeHistoryVisible}
+        onClose={() => setExchangeHistoryVisible(false)}
+      />
+
+      <ProductSearchSheet 
+        visible={searchResultsVisible}
+        query={searchQuery}
+        onClose={() => setSearchResultsVisible(false)}
+        onProductSelect={handleProductSelect}
+      />
+
+      <ListSelectorModal 
+        visible={listSelectorVisible}
+        onClose={() => setListSelectorVisible(false)}
+        onSelect={handleListSelect}
       />
 
     </ThemedView>
