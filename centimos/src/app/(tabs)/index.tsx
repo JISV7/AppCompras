@@ -58,6 +58,7 @@ export default function HomeScreen() {
 
   // Camera State
   const [isScanning, setIsScanning] = useState(false);
+  const [scanMode, setScanMode] = useState<'search' | 'log'>('search');
   const [permission, requestPermission] = useCameraPermissions();
 
   // NEW STATE FOR PRODUCT SHEET (Single result from barcode)
@@ -96,7 +97,8 @@ export default function HomeScreen() {
     }
   };
 
-  const handleStartScanning = async () => {
+  const handleStartScanning = async (mode: 'search' | 'log' = 'search') => {
+    setScanMode(mode);
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
@@ -216,7 +218,7 @@ export default function HomeScreen() {
         />
 
         <ScannerAction
-          onScanPress={handleStartScanning}
+          onScanPress={() => handleStartScanning('search')}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSearchSubmit={handleManualSubmit}
@@ -227,7 +229,7 @@ export default function HomeScreen() {
           {/* 1. Log Price */}
           <TouchableOpacity 
             style={[styles.actionCard, { backgroundColor: cardColor }]}
-            onPress={handleStartScanning}
+            onPress={() => handleStartScanning('log')}
           >
             <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
                <MaterialIcons name="add-location-alt" size={24} color={primaryColor} />
@@ -283,8 +285,10 @@ export default function HomeScreen() {
         loading={isSearching}
         product={scannedProduct}
         barcode={lastScannedCode}
+        mode={scanMode}
         onClose={handleCloseSheet}
         onRescan={handleRescan}
+        onAddToList={handleProductSelect}
       />
 
       <ProfileSheet

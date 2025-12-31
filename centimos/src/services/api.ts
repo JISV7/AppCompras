@@ -97,6 +97,21 @@ export const getExchangeRateHistory = async (limit: number = 30) => {
   }
 };
 
+export const reportPrice = async (barcode: string, storeId: string, price: number) => {
+  try {
+    const response = await api.post('/prices/', {
+      product_barcode: barcode,
+      store_id: storeId,
+      price: price,
+      currency: 'USD'
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to report price", error);
+    throw error;
+  }
+};
+
 export const getUserProfile = async () => {
   try {
     const response = await api.get('/users/me'); // Standard FastAPI endpoint
