@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Query
 from sqlalchemy import select
 
 from src.core.deps import CurrentUser, SessionDep
@@ -102,7 +102,7 @@ async def complete_list(
     list_id: uuid.UUID,
     db: SessionDep,
     current_user: CurrentUser,
-    store_id: uuid.UUID # Assume all items were bought at this store for simplicity for now
+    store_id: uuid.UUID = Query(...) # Assume all items were bought at this store for simplicity for now
 ):
     # 1. Verify list exists and belongs to user
     result = await db.execute(

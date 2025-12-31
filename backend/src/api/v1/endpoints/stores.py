@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query
 from geoalchemy2.elements import WKTElement
 from sqlalchemy import func, select
 
-from src.core.deps import SessionDep
+from src.core.deps import CurrentUser, SessionDep
 from src.models.store import Store
 from src.schemas.store import StoreCreate, StoreRead
 
@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.post("/", response_model=StoreRead)
-async def create_store(store_in: StoreCreate, db: SessionDep):
+async def create_store(store_in: StoreCreate, db: SessionDep, current_user: CurrentUser):
     point = f"POINT({store_in.longitude} {store_in.latitude})"
 
     new_store = Store(
