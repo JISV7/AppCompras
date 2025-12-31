@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert, Switch } from 'react-native';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useState, useEffect } from 'react';
+import { StoreSelectorModal } from '../stores/StoreSelectorModal';
 
 interface EnrichedListItem {
     item_id: string;
@@ -15,13 +16,14 @@ interface EnrichedListItem {
     planned_price?: number;
     is_purchased?: boolean;
     store_id?: string;
+    storeName?: string;
 }
 
 interface ListItemSheetProps {
     visible: boolean;
     item: EnrichedListItem | null;
     onClose: () => void;
-    onUpdateItem?: (updatedFields: { quantity?: number; planned_price?: number | null; is_purchased?: boolean; store_id?: string }) => void;
+    onUpdateItem?: (updatedFields: { quantity?: number; planned_price?: number | null; is_purchased?: boolean; store_id?: string | null }) => void;
     priceLocked?: boolean;
 }
 
@@ -39,6 +41,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
     const [isPurchasedState, setIsPurchasedState] = useState(item?.is_purchased || false);
     const [selectedStoreId, setSelectedStoreId] = useState(item?.store_id || null);
+    const [storeSelectorVisible, setStoreSelectorVisible] = useState(false);
 
     const saveLock = React.useRef(false);
 
@@ -160,6 +163,12 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
         onUpdateItem?.({ is_purchased: newValue, store_id: selectedStoreId });
     };
 
+    const handleSelectStore = (store: any) => {
+        setSelectedStoreId(store.store_id);
+        setStoreSelectorVisible(false);
+        onUpdateItem?.({ store_id: store.store_id });
+    };
+
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlayWrapper}>
@@ -272,16 +281,29 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                 />
                             </View>
 
-                            {/* Store ID (Placeholder) */}
-                            {isPurchasedState && ( // Only show store if purchased
-                                <View style={styles.detailRow}>
+                            {/* Store Selection */}
+                            <TouchableOpacity 
+                                style={styles.detailRow} 
+                                onPress={() => setStoreSelectorVisible(true)}
+                            >
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    <MaterialIcons name="storefront" size={20} color={subTextColor} />
                                     <Text style={{ color: subTextColor }}>Store</Text>
-                                    <Text style={{ color: textColor, fontWeight: '500' }}>
-                                        {selectedStoreId ? selectedStoreId : 'Select Store...'}
-                                    </Text>
                                 </View>
-                            )}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Text style={{ color: textColor, fontWeight: '500' }}>
+                                        {item.storeName || 'Select Store...'}
+                                    </Text>
+                                    <Ionicons name="chevron-forward" size={16} color={subTextColor} />
+                                </View>
+                            </TouchableOpacity>
                         </View>
+
+                        <StoreSelectorModal
+                            visible={storeSelectorVisible}
+                            onClose={() => setStoreSelectorVisible(false)}
+                            onSelect={handleSelectStore}
+                        />
                     </Pressable>
                 </Pressable>
             </KeyboardAvoidingView>

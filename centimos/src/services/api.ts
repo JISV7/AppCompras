@@ -83,19 +83,50 @@ interface Store {
 }
 
 export const getStores = async (): Promise<Store[]> => {
-  // For now, return hardcoded stores. Later connect to backend.
-  return [
-    { store_id: "3d4f8bb4-6ca6-47f4-85db-6663023a241c", name: "Farmatodo" },
-    { store_id: "de96f594-1a77-4975-9cb3-62eeac52eec6", name: "Bio Mercado" },
-    { store_id: "86340cab-4d7e-4fa2-8c1a-c54e0d9021a8", name: "Excelsior Gama" },
-  ];
-  // try {
-  //   const response = await api.get('/stores/');
-  //   return response.data;
-  // } catch (error) {
-  //   console.error("Failed to fetch stores", error);
-  //   return [];
-  // }
+  try {
+    const response = await api.get('/stores/');
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch stores", error);
+    return [];
+  }
+};
+
+export const searchStores = async (query: string): Promise<Store[]> => {
+  try {
+    const response = await api.get('/stores/', { params: { q: query } });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to search stores", error);
+    return [];
+  }
+};
+
+export const getNearbyStores = async (lat: number, lon: number, radius: number = 1000): Promise<Store[]> => {
+  try {
+    const response = await api.get('/stores/nearby', { 
+      params: { lat, lon, radius_meters: radius } 
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to get nearby stores", error);
+    return [];
+  }
+};
+
+export const createStore = async (name: string, address: string, latitude: number, longitude: number): Promise<Store | null> => {
+  try {
+    const response = await api.post('/stores/', {
+      name,
+      address,
+      latitude,
+      longitude
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create store", error);
+    throw error;
+  }
 };
 
 export default api;

@@ -21,7 +21,7 @@ export default function Index() {
 
   // If user is authenticated, redirect to main app
   if (isAuthenticated) {
-    return <Redirect href="/(tabs)/index" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   // Check if user has completed onboarding

@@ -15,3 +15,5 @@ class StoreRead(BaseSchema):
     store_id: UUID
     name: str
     address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None

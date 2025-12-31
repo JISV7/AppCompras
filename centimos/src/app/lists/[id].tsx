@@ -1,15 +1,16 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, Modal, Pressable, TextInput, ScrollView } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { getListDetails, addListItem, deleteListItem, updateListItem, completeShoppingList, updateList, ShoppingList, ListItem } from '@/services/lists';
-import { getProduct, getLatestExchangeRate, getStores } from '@/services/api';
+import { getProduct, getLatestExchangeRate, getStores, searchStores, getNearbyStores } from '@/services/api';
 import { normalizeToGtin13 } from '@/services/validate';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { SwipeableRow } from '@/components/common/SwipeableRow';
 import { ListItemSheet } from '@/components/lists/ListItemSheet';
 import { CameraModal } from '@/components/scanner/CameraModal';
 import { AddProductModal } from '@/components/lists/AddProductModal';
+import * as Location from 'expo-location';
 
 // Helper interface to combine List Item + Product Details
 interface EnrichedListItem extends ListItem {
@@ -17,15 +18,13 @@ interface EnrichedListItem extends ListItem {
   productImage?: string;
   estimatedPrice?: number;
   predictedPrice?: number;
-  added_at?: string;
-  planned_price?: number;
-  is_purchased?: boolean; // Added
-  store_id?: string;      // Added
+  storeName?: string;
 }
 
 interface Store {
   store_id: string;
   name: string;
+  address?: string;
 }
 
 export default function ListDetailScreen() {
@@ -57,6 +56,13 @@ export default function ListDetailScreen() {
   const [selectedStoreForCompletion, setSelectedStoreForCompletion] = useState<string | null>(null);
   const [completingList, setCompletingList] = useState(false);
 
+  // NEW: Store Search and Nearby State
+  const [storeSearchQuery, setStoreSearchQuery] = useState('');
+  const [storeSearchResults, setStoreSearchResults] = useState<Store[]>([]);
+  const [nearbyStores, setNearbyStores] = useState<Store[]>([]);
+  const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
+  const [searchingStores, setSearchingStores] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, [id]);
@@ -74,7 +80,7 @@ export default function ListDetailScreen() {
       if (rateData) setExchangeRate(rateData.rate_to_ves);
       setAvailableStores(storesData); // Set available stores
 
-      await processItems(listData, rateData?.rate_to_ves);
+      await processItems(listData, rateData?.rate_to_ves, storesData);
 
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -84,13 +90,14 @@ export default function ListDetailScreen() {
     }
   };
 
-  const processItems = async (listData: ShoppingList, rate: number | undefined) => {
+  const processItems = async (listData: ShoppingList, rate: number | undefined, storesData: Store[]) => {
     const enrichedItems = await Promise.all(
       listData.items.map(async (item) => {
         try {
           const product = await getProduct(item.product_barcode);
           const avgPrice = Number(product?.estimated_price_usd) || 0;
           const predPrice = Number(product?.predicted_price_usd) || 0;
+          const store = storesData.find((s: any) => s.store_id === item.store_id);
 
           return {
             ...item,
@@ -98,10 +105,11 @@ export default function ListDetailScreen() {
             productImage: product?.image_url,
             estimatedPrice: avgPrice,
             predictedPrice: predPrice,
+            storeName: store?.name,
             added_at: item.added_at,
             planned_price: item.planned_price,
-            is_purchased: item.is_purchased, // Added
-            store_id: item.store_id,         // Added
+            is_purchased: item.is_purchased,
+            store_id: item.store_id,
           };
         } catch {
           return { ...item, productName: "Product not found", estimatedPrice: 0, predictedPrice: 0 };
@@ -160,14 +168,45 @@ export default function ListDetailScreen() {
     }
   };
 
-  const handleCompleteListPress = () => {
-    // Only allow completing if there are items and a store is selected by default, or provide selection
-    if (availableStores.length === 0) {
-      Alert.alert("No Stores", "Please add stores to log prices when completing a list.");
-      return;
-    }
-    setSelectedStoreForCompletion(availableStores[0].store_id); // Auto-select first store for convenience
+  const handleCompleteListPress = async () => {
+    // Reset states
+    setStoreSearchQuery('');
+    setStoreSearchResults([]);
+    setIsNearbyExpanded(false);
+    setSelectedStoreForCompletion(null);
     setShowCompleteModal(true);
+
+    // Fetch Nearby Stores
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        const nearby = await getNearbyStores(location.coords.latitude, location.coords.longitude);
+        setNearbyStores(nearby);
+        if (nearby.length > 0) {
+            setSelectedStoreForCompletion(nearby[0].store_id);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching nearby stores:", error);
+    }
+  };
+
+  const handleStoreSearch = async (text: string) => {
+    setStoreSearchQuery(text);
+    if (text.length > 1) {
+      setSearchingStores(true);
+      try {
+        const results = await searchStores(text);
+        setStoreSearchResults(results);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setSearchingStores(false);
+      }
+    } else {
+      setStoreSearchResults([]);
+    }
   };
 
   const handleConfirmCompleteList = async () => {
@@ -190,22 +229,31 @@ export default function ListDetailScreen() {
     }
   };
 
-  const handleUpdateItem = async (updatedFields: { quantity?: number; planned_price?: number; is_purchased?: boolean; store_id?: string }) => {
+  const handleUpdateItem = async (updatedFields: { quantity?: number; planned_price?: number | null; is_purchased?: boolean; store_id?: string | null }) => {
     if (!selectedItem) return;
 
     const originalItems = [...items];
     const itemToUpdate = selectedItem;
 
+    // Remove nulls/undefineds for spread
+    const cleanUpdates: any = { ...updatedFields };
+    // if store_id is null, it means we clear it.
+    
     // Optimistically update the UI
     const updatedItems = items.map(i =>
-      i.item_id === itemToUpdate.item_id ? { ...i, ...updatedFields } : i
+      i.item_id === itemToUpdate.item_id ? { ...i, ...cleanUpdates } : i
     );
     setItems(updatedItems);
     calculateTotal(updatedItems);
-    setSelectedItem({ ...itemToUpdate, ...updatedFields });
+    setSelectedItem({ ...itemToUpdate, ...cleanUpdates });
+
+    // API calls expect specific types, handle nulls if needed by service
+    // Ensure service handles null store_id or planned_price
+    const apiData: any = { ...updatedFields };
+    if (apiData.store_id === null) delete apiData.store_id; // or pass null if backend supports it. backend supports optional, so let's check service.
 
     try {
-      await updateListItem(id, itemToUpdate.item_id, updatedFields);
+      await updateListItem(id, itemToUpdate.item_id, apiData);
       // Re-fetch list to ensure consistency and refresh calculated totals/statuses from backend
       fetchData();
     } catch (e) {
@@ -351,30 +399,81 @@ export default function ListDetailScreen() {
             </Text>
 
             {/* Store Selection */}
-            {availableStores.length > 0 ? (
-              <View style={styles.storeSelectContainer}>
+            <View style={styles.storeSelectContainer}>
                 <Text style={[styles.storeSelectLabel, { color: textColor }]}>Purchased from:</Text>
-                <View style={styles.storeOptionContainer}>
-                  {availableStores.map((store) => (
-                    <TouchableOpacity
-                      key={store.store_id}
-                      style={[
-                        styles.storeOption,
-                        {
-                          backgroundColor: selectedStoreForCompletion === store.store_id ? primaryColor : subTextColor,
-                          borderColor: selectedStoreForCompletion === store.store_id ? primaryColor : subTextColor,
-                        }
-                      ]}
-                      onPress={() => setSelectedStoreForCompletion(store.store_id)}
-                    >
-                      <Text style={[styles.storeOptionText, { color: 'white' }]}>{store.name}</Text>
-                    </TouchableOpacity>
-                  ))}
+                
+                {/* Search Bar */}
+                <View style={[styles.modalSearchBar, { backgroundColor: bgColor }]}>
+                    <Ionicons name="search" size={18} color={subTextColor} />
+                    <TextInput
+                        style={[styles.modalSearchInput, { color: textColor }]}
+                        placeholder="Search store name/address..."
+                        placeholderTextColor="#999"
+                        value={storeSearchQuery}
+                        onChangeText={handleStoreSearch}
+                    />
                 </View>
-              </View>
-            ) : (
-              <Text style={{ color: subTextColor, textAlign: 'center', marginBottom: 20 }}>No stores available. Add one first!</Text>
-            )}
+
+                {/* Search Results / Selected Store */}
+                {storeSearchResults.length > 0 ? (
+                    <ScrollView style={styles.searchResultsContainer} nestedScrollEnabled>
+                        {storeSearchResults.map(store => (
+                            <TouchableOpacity 
+                                key={store.store_id} 
+                                style={[styles.searchResultItem, selectedStoreForCompletion === store.store_id && { backgroundColor: `${primaryColor}22` }]}
+                                onPress={() => setSelectedStoreForCompletion(store.store_id)}
+                            >
+                                <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
+                                <Text style={styles.searchResultAddress} numberOfLines={1}>{store.address}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                ) : selectedStoreForCompletion && !isNearbyExpanded ? (
+                    <View style={[styles.selectedStoreRow, { backgroundColor: `${primaryColor}11`, borderColor: primaryColor }]}>
+                        <Ionicons name="checkmark-circle" size={20} color={primaryColor} />
+                        <Text style={{ color: textColor, fontWeight: 'bold', marginLeft: 8 }}>
+                            {nearbyStores.find(s => s.store_id === selectedStoreForCompletion)?.name || 
+                             storeSearchResults.find(s => s.store_id === selectedStoreForCompletion)?.name || 
+                             "Selected Store"}
+                        </Text>
+                    </View>
+                ) : null}
+
+                {/* Collapsible Nearby */}
+                <TouchableOpacity 
+                    style={styles.nearbyToggle} 
+                    onPress={() => setIsNearbyExpanded(!isNearbyExpanded)}
+                >
+                    <Text style={{ color: primaryColor, fontWeight: 'bold' }}>
+                        {isNearbyExpanded ? "Hide Nearby" : "Show Nearby Stores"}
+                    </Text>
+                    <Ionicons name={isNearbyExpanded ? "chevron-up" : "chevron-down"} size={16} color={primaryColor} />
+                </TouchableOpacity>
+
+                {isNearbyExpanded && (
+                    <View style={styles.nearbyList}>
+                        {nearbyStores.length > 0 ? (
+                            nearbyStores.map((store) => (
+                                <TouchableOpacity
+                                    key={store.store_id}
+                                    style={[
+                                        styles.storeOption,
+                                        {
+                                            backgroundColor: selectedStoreForCompletion === store.store_id ? primaryColor : subTextColor,
+                                            borderColor: selectedStoreForCompletion === store.store_id ? primaryColor : subTextColor,
+                                        }
+                                    ]}
+                                    onPress={() => setSelectedStoreForCompletion(store.store_id)}
+                                >
+                                    <Text style={[styles.storeOptionText, { color: 'white' }]}>{store.name}</Text>
+                                </TouchableOpacity>
+                            ))
+                        ) : (
+                            <Text style={{ color: subTextColor, textAlign: 'center', fontSize: 12 }}>No stores found nearby.</Text>
+                        )}
+                    </View>
+                )}
+            </View>
 
             <TouchableOpacity
               style={[styles.completeButton, { backgroundColor: primaryColor, opacity: completingList || !selectedStoreForCompletion ? 0.7 : 1 }]}
@@ -495,5 +594,60 @@ const styles = StyleSheet.create({
   cancelCompleteButtonText: {
     fontSize: 15,
     fontWeight: '500',
+  },
+  modalSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  modalSearchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  searchResultsContainer: {
+    maxHeight: 120,
+    marginBottom: 10,
+  },
+  searchResultItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  searchResultText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  searchResultAddress: {
+    fontSize: 11,
+    color: '#888',
+  },
+  selectedStoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  nearbyToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+  },
+  nearbyList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 15,
   },
 });

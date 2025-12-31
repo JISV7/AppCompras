@@ -28,6 +28,7 @@ export const Colors = {
   },
   dark: {
     text: '#ECEDEE',
+    textSecondary: '#a0b3ac', // Secondary text from design
     textMain: '#e0ece9', // Main text from design
     textSub: '#a0b3ac', // Sub text from design
     background: '#151718',

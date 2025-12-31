@@ -29,7 +29,7 @@ export default function OtpScreen() {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: any = null;
     if (timer > 0) {
       interval = setInterval(() => setTimer(prev => prev - 1), 1000);
     }
@@ -44,6 +44,7 @@ export default function OtpScreen() {
 
       // Auto-focus next input
       if (value && index < 5) {
+        // @ts-ignore
         inputRefs.current[index + 1]?.focus();
       }
     }
@@ -132,6 +133,7 @@ export default function OtpScreen() {
             {otp.map((digit, index) => (
               <TextInput
                 key={index}
+                // @ts-ignore
                 ref={ref => inputRefs.current[index] = ref}
                 style={[styles.otpInput, { color: textColor, backgroundColor: surfaceColor }]}
                 value={digit}
@@ -285,5 +287,29 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  passwordContainer: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  passwordInput: {
+    width: '100%',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
 });

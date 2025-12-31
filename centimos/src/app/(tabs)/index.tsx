@@ -33,7 +33,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<{full_name?: string; username: string; email: string} | null>(null);
   const [profileVisible, setProfileVisible] = useState(false);
 
   // Camera State
