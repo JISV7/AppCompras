@@ -12,17 +12,17 @@ const onboardingData = [
   {
     title: "Beat the Inflation.",
     description: "Real-time exchange rates and historical data to help you decide the best time to buy.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCz4db3-KLb3YCzQjmF7okOc1z7W6E5WQTk_ppVv6GPMiGZLvlU8eDAuz5d9YOqGV5zHs8ByYQCgjitL45_NyPlEDzbvQ9sfHtKzoUJhOOCz_5c9fJ1_0Lf8T7m2jGqOYmI3EM1Dl1SQc3AvYK5MYHYiV2VdyCh6omNWEHwHOm9vqJnfJBBevsuUrRC8Q92Jxv4UL_sugTdM3yT8wvG-ljiaz3gs5pTjJBCz4LzNBCRnMp_PcqfTvvIgTZ5aLvy-Wj1sbppJftSk6kb"
+    image: require("@/assets/images/onboarding/step1.png")
   },
   {
     title: "Compare Store Prices.",
     description: "Find the cheapest place to buy your list. We track prices across local supermarkets.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBhagMnNZ2eSJvYr2jw2ZP7UJtwAZIxg-4oujv0vtI0YIdEWk0FnjoOIG8i4gb6jJa1O4YQVB7Ei9PR0sAsEx3lD9vLL6uNlvhvR2hBDKc7rvBIW6F1E3_aXYqJyphZ26PQL8gM82h684UqG0WdQqJOX-1uuFiuhxass93sof9SwQQiB8SkssVnn8N6dkHeIfVhY-U9Ka8Zp4NCh5E13E3QUBdIsh5Raxa6x9VYvJ6MXHj5JUuH8LTyaSH5ffVdOmLXklgyKVF06-0j"
+    image: require("@/assets/images/onboarding/step2.png")
   },
   {
     title: "Plan Smart, Spend Less.",
     description: "Create monthly budgets for groceries and pharmacy. Let us estimate the cost before you leave home.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCpWyDayLyNYuUrAUkNZSU4qa7BkxsiXdpPYcEaQzOuPx0lUAQxs02jL6wZZUIBq-nCvJ0xqMXFZk7X8eUNjIvnnQBhfgBeWhOxeZ_KIGtQ41yODFph9gW3MleQ43KcenlobolDN8mfIct4AenGjVW4jLG5VKq9wnCV53F4PlHMRVC__5X4y-9majUoWpmLDHTZ8nPu4dZeVWqsOkvSuPSH4cVEAbGyMW4FoEgWSKU5jOB-6sRkQvMNmthwwzJ7QG0AJEgVJwqvvfp"
+    image: require("@/assets/images/onboarding/step3.png")
   }
 ];
 
@@ -68,7 +68,7 @@ export default function OnboardingScreen() {
         <View style={styles.imageContainer}>
           <View style={styles.imageWrapper}>
             <Image
-              source={{ uri: onboardingData[currentStep].image }}
+              source={onboardingData[currentStep].image}
               style={styles.image}
               resizeMode="contain"
             />

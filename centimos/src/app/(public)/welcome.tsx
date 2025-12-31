@@ -13,6 +13,8 @@ export default function WelcomeScreen() {
   const primaryColor = useThemeColor({}, 'primary');
   const insets = useSafeAreaInsets();
 
+  const heroImage = require("@/assets/images/welcome/step4.png");
+
   return (
     <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
       {/* Content Wrapper */}
@@ -27,7 +29,7 @@ export default function WelcomeScreen() {
           {/* Hero Illustration */}
           <View style={styles.illustrationContainer}>
             <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBPLuBHQhyXvqd-f8P5uNsUp_iF8j7P_HNtSqQObhoNpMfG8IwZm5aCbU6gttJFIK3bR_lm52qbHByBkMvRPeVpMm6HtT9oxWw67F-BI3q7OqwxkvaPzHCoIDd2fVxOe8_6iW7yfQN_79RAXSnjDK7Y9Y5O-r-cfmM-w2TjV8F-QhogttwqL6OiEfSUFhR1FKeE3OkX5wy7145aXL2b392FRPq_hSrKDJghZdpavK2-aGfZAJaGAPKMlX-W6S-JYc5WdUQIWK5vRWfb' }}
+              source={heroImage}
               style={styles.illustration}
               resizeMode="contain"
             />
