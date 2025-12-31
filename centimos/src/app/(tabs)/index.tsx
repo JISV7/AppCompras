@@ -23,6 +23,7 @@ import { validateGtin } from '@/services/validate';
 import { ExchangeRateHistorySheet } from '@/components/home/ExchangeRateHistorySheet';
 import { ProductSearchSheet } from '@/components/home/ProductSearchSheet';
 import { ListSelectorModal } from '@/components/home/ListSelectorModal';
+import { ConverterSheet } from '@/components/home/ConverterSheet';
 
 export default function HomeScreen() {
   const color = useThemeColor({}, 'background');
@@ -35,7 +36,7 @@ export default function HomeScreen() {
   const { logout } = useAuth();
 
   // State
-  const [rate, setRate] = useState(null);
+  const [rate, setRate] = useState<{rate_to_ves: string; source: string; recorded_at: string} | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,6 +45,9 @@ export default function HomeScreen() {
 
   // Exchange History State
   const [exchangeHistoryVisible, setExchangeHistoryVisible] = useState(false);
+
+  // Converter State
+  const [converterVisible, setConverterVisible] = useState(false);
 
   // Search Results State
   const [searchResultsVisible, setSearchResultsVisible] = useState(false);
@@ -218,24 +222,50 @@ export default function HomeScreen() {
           onSearchSubmit={handleManualSubmit}
         />
 
-        <Text style={[styles.sectionTitle, { color: textColor }]}>My Shopping</Text>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>Quick Actions</Text>
         <View style={styles.grid}>
+          {/* 1. Log Price */}
+          <TouchableOpacity 
+            style={[styles.actionCard, { backgroundColor: cardColor }]}
+            onPress={handleStartScanning}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+               <MaterialIcons name="add-location-alt" size={24} color={primaryColor} />
+            </View>
+            <Text style={[styles.actionTitle, { color: textColor }]}>Log Price</Text>
+          </TouchableOpacity>
+
+          {/* 2. Converter */}
+          <TouchableOpacity 
+            style={[styles.actionCard, { backgroundColor: cardColor }]}
+            onPress={() => setConverterVisible(true)}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+               <MaterialIcons name="calculate" size={24} color="#1976D2" />
+            </View>
+            <Text style={[styles.actionTitle, { color: textColor }]}>Converter</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.grid, { marginTop: 15 }]}>
+          {/* 3. New List */}
           <TouchableOpacity 
             style={[styles.actionCard, { backgroundColor: cardColor }]}
             onPress={() => router.push('/lists')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
-               <MaterialIcons name="playlist-add" size={28} color="#1976D2" />
+            <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+               <MaterialIcons name="playlist-add" size={24} color="#E65100" />
             </View>
             <Text style={[styles.actionTitle, { color: textColor }]}>New List</Text>
           </TouchableOpacity>
 
+          {/* 4. Add Store */}
           <TouchableOpacity 
             style={[styles.actionCard, { backgroundColor: cardColor }]}
             onPress={() => router.push('/stores')}
           >
             <View style={[styles.actionIcon, { backgroundColor: '#F3E5F5' }]}>
-               <MaterialIcons name="storefront" size={28} color="#7B1FA2" />
+               <MaterialIcons name="storefront" size={24} color="#7B1FA2" />
             </View>
             <Text style={[styles.actionTitle, { color: textColor }]}>Add Store</Text>
           </TouchableOpacity>
@@ -281,6 +311,12 @@ export default function HomeScreen() {
         visible={listSelectorVisible}
         onClose={() => setListSelectorVisible(false)}
         onSelect={handleListSelect}
+      />
+
+      <ConverterSheet 
+        visible={converterVisible}
+        rate={rate ? parseFloat(rate.rate_to_ves) : 0}
+        onClose={() => setConverterVisible(false)}
       />
 
     </ThemedView>
