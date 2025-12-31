@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { getListDetails, addListItem, deleteListItem, updateListItem, completeShoppingList, ShoppingList, ListItem } from '@/services/lists';
+import { getListDetails, addListItem, deleteListItem, updateListItem, completeShoppingList, updateList, ShoppingList, ListItem } from '@/services/lists';
 import { getProduct, getLatestExchangeRate, getStores } from '@/services/api';
 import { normalizeToGtin13 } from '@/services/validate';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
@@ -89,15 +89,15 @@ export default function ListDetailScreen() {
       listData.items.map(async (item) => {
         try {
           const product = await getProduct(item.product_barcode);
-          const avgPrice = product?.estimated_price_usd || product?.price || 0;
-          const currentPrice = product?.price || 0;
+          const avgPrice = Number(product?.estimated_price_usd) || 0;
+          const predPrice = Number(product?.predicted_price_usd) || 0;
 
           return {
             ...item,
             productName: product?.name || "Unknown Product",
             productImage: product?.image_url,
             estimatedPrice: avgPrice,
-            predictedPrice: currentPrice,
+            predictedPrice: predPrice,
             added_at: item.added_at,
             planned_price: item.planned_price,
             is_purchased: item.is_purchased, // Added
@@ -121,6 +121,10 @@ export default function ListDetailScreen() {
   };
 
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
+    if (list?.status === 'COMPLETED') {
+       Alert.alert("List Completed", "Cannot add items to a completed list.");
+       return;
+    }
     setIsScanning(false);
     setIsManualAdd(false); // Close manual modal if open (though logic passes data here)
 
@@ -212,6 +216,16 @@ export default function ListDetailScreen() {
       Alert.alert("Error", "Could not update item.");
     }
   };
+
+  const handleReopenList = async () => {
+    try {
+      await updateList(id, { status: 'ACTIVE' });
+      Alert.alert("Success", "List Reopened!");
+      fetchData();
+    } catch (error) {
+      Alert.alert("Error", "Could not reopen list.");
+    }
+  };
   
   const renderItem = ({ item }: { item: EnrichedListItem }) => (
     <SwipeableRow onDelete={() => handleRemoveItem(item.item_id)} height={80} bottomMargin={10}>
@@ -266,7 +280,7 @@ export default function ListDetailScreen() {
         />
       )}
 
-      {showActions && (
+      {showActions && list?.status !== 'COMPLETED' && (
         <View style={styles.actionMenu}>
           <TouchableOpacity style={styles.actionBtn} onPress={handleCompleteListPress}>
             <MaterialIcons name="done-all" size={24} color="white" />
@@ -283,6 +297,7 @@ export default function ListDetailScreen() {
         </View>
       )}
 
+      {list?.status !== 'COMPLETED' && (
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: primaryColor, transform: [{ rotate: showActions ? '45deg' : '0deg' }] }]}
         onPress={() => setShowActions(!showActions)}
@@ -290,6 +305,16 @@ export default function ListDetailScreen() {
       >
         <Ionicons name="add" size={32} color="white" />
       </TouchableOpacity>
+      )}
+
+      {list?.status === 'COMPLETED' && (
+          <TouchableOpacity 
+            style={[styles.fab, { backgroundColor: '#FF9800', width: 'auto', paddingHorizontal: 20, borderRadius: 30 }]}
+            onPress={handleReopenList}
+          >
+            <Text style={{color: 'white', fontWeight: 'bold'}}>Reopen List</Text>
+          </TouchableOpacity>
+      )}
 
       <CameraModal
         visible={isScanning}
@@ -308,6 +333,7 @@ export default function ListDetailScreen() {
         item={selectedItem}
         onClose={() => setSelectedItem(null)}
         onUpdateItem={handleUpdateItem}
+        priceLocked={list?.status === 'COMPLETED'}
       />
 
       {/* Complete List Modal */}

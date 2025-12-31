@@ -34,7 +34,9 @@ async def create_list(
 @router.get("/", response_model=list[ShoppingListRead])
 async def get_my_lists(db: SessionDep, current_user: CurrentUser):
     result = await db.execute(
-        select(ShoppingList).where(ShoppingList.user_id == current_user.user_id)
+        select(ShoppingList)
+        .where(ShoppingList.user_id == current_user.user_id)
+        .order_by(ShoppingList.status.asc(), ShoppingList.created_at.desc())
     )
     return result.scalars().all()
 
@@ -72,6 +74,16 @@ async def update_list(
         raise HTTPException(status_code=403, detail="Not authorized to update this list")
 
     update_data = list_update.model_dump(exclude_unset=True)
+
+    if shopping_list.status == "COMPLETED":
+        # Only allow updates if we are changing status back to ACTIVE (re-opening)
+        if update_data.get("status") != "ACTIVE":
+             raise HTTPException(status_code=400, detail="Cannot edit a completed list. Re-open it first.")
+        else:
+             # Reset planned prices to defaults (None) on reopen
+             for item in shopping_list.items:
+                 item.planned_price = None
+
     for field, value in update_data.items():
         setattr(shopping_list, field, value)
 
@@ -226,7 +238,7 @@ async def delete_item(
         raise HTTPException(status_code=404, detail="List not found")
     if shopping_list.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this list")
-
+    
     # 2. Find the item
     item_result = await db.execute(
         select(ListItem).where(
@@ -260,6 +272,12 @@ async def update_item(
         raise HTTPException(status_code=404, detail="List not found")
     if shopping_list.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this list")
+
+    update_data = item_in.model_dump(exclude_unset=True)
+
+    if shopping_list.status == "COMPLETED":
+        if "planned_price" in update_data:
+             raise HTTPException(status_code=400, detail="Cannot update price in a completed list")
 
     # 2. Find the item
     item_result = await db.execute(

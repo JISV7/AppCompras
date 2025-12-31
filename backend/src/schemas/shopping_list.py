@@ -41,6 +41,7 @@ class ShoppingListUpdate(BaseSchema):
     budget_limit: Optional[float] = None
     currency: Optional[str] = None
     store_id: Optional[UUID] = None
+    status: Optional[str] = None
 
 
 class ShoppingListRead(BaseSchema):

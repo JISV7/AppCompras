@@ -21,10 +21,11 @@ interface ListItemSheetProps {
     visible: boolean;
     item: EnrichedListItem | null;
     onClose: () => void;
-    onUpdateItem?: (updatedFields: { quantity?: number; planned_price?: number; is_purchased?: boolean; store_id?: string }) => void;
+    onUpdateItem?: (updatedFields: { quantity?: number; planned_price?: number | null; is_purchased?: boolean; store_id?: string }) => void;
+    priceLocked?: boolean;
 }
 
-export function ListItemSheet({ visible, item, onClose, onUpdateItem }: ListItemSheetProps) {
+export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocked = false }: ListItemSheetProps) {
     const sheetColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'textMain');
     const subTextColor = '#888';
@@ -85,6 +86,10 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem }: ListItem
 
     // --- QTY Handlers ---
     const handleQtyPress = () => {
+        if (isPurchasedState) {
+            Alert.alert("Item Purchased", "Unmark as purchased to edit quantity.");
+            return;
+        }
         if (onUpdateItem) {
             saveLock.current = false;
             setQtyValue(item.quantity.toString());
@@ -110,6 +115,14 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem }: ListItem
 
     // --- Price Handlers ---
     const handlePricePress = () => {
+        if (priceLocked) {
+            Alert.alert("Price Locked", "List is completed. Re-open to edit price.");
+            return;
+        }
+        if (isPurchasedState) {
+            Alert.alert("Item Purchased", "Unmark as purchased to edit price.");
+            return;
+        }
         if (onUpdateItem) {
             saveLock.current = false;
             const currentPrice = item.planned_price ?? item.estimatedPrice ?? 0;
@@ -120,6 +133,14 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem }: ListItem
 
     const handleSavePrice = () => {
         if (saveLock.current) return;
+
+        if (priceValue === '' || priceValue === '0') {
+             // Reset to global defaults
+             saveLock.current = true;
+             onUpdateItem?.({ planned_price: null });
+             setIsEditingPrice(false);
+             return;
+        }
 
         const price = parseFloat(priceValue);
         if (!isNaN(price) && price >= 0) {
@@ -186,7 +207,6 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem }: ListItem
                                             onChangeText={(text) => setQtyValue(text.replace(/[^0-9]/g, ''))}
                                             keyboardType="numeric"
                                             autoFocus
-                                            onBlur={handleSaveQty}
                                             onSubmitEditing={handleSaveQty}
                                             maxLength={2}
                                             selectTextOnFocus
@@ -210,7 +230,6 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem }: ListItem
                                             onChangeText={setPriceValue}
                                             keyboardType="decimal-pad"
                                             autoFocus
-                                            onBlur={handleSavePrice}
                                             onSubmitEditing={handleSavePrice}
                                             selectTextOnFocus
                                         />
@@ -249,6 +268,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem }: ListItem
                                     value={isPurchasedState}
                                     trackColor={{ false: '#767577', true: primaryColor }}
                                     thumbColor={isPurchasedState ? '#f4f3f4' : '#f4f3f4'}
+                                    disabled={false}
                                 />
                             </View>
 

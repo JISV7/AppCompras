@@ -54,8 +54,13 @@ export const deleteListItem = async (listId: string, itemId: string): Promise<vo
     await api.delete(`/lists/${listId}/items/${itemId}`);
 };
 
-export const updateListItem = async (listId: string, itemId: string, data: { quantity?: number; is_purchased?: boolean; planned_price?: number; store_id?: string }): Promise<void> => {
+export const updateListItem = async (listId: string, itemId: string, data: { quantity?: number; is_purchased?: boolean; planned_price?: number | null; store_id?: string }): Promise<void> => {
     await api.put(`/lists/${listId}/items/${itemId}`, data);
+};
+
+export const updateList = async (listId: string, data: { name?: string; budget_limit?: number; currency?: string; status?: string }): Promise<ShoppingList> => {
+    const response = await api.put(`/lists/${listId}`, data);
+    return response.data;
 };
 
 export const completeShoppingList = async (listId: string, storeId: string): Promise<ShoppingList> => {

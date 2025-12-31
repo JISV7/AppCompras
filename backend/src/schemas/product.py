@@ -13,3 +13,5 @@ class ProductCreate(BaseSchema):
 
 class ProductRead(ProductCreate):
     data_source: str
+    estimated_price_usd: Optional[float] = None
+    predicted_price_usd: Optional[float] = None
