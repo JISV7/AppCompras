@@ -10,18 +10,18 @@ const { width } = Dimensions.get('window');
 
 const onboardingData = [
   {
-    title: "Beat the Inflation.",
-    description: "Real-time exchange rates and historical data to help you decide the best time to buy.",
+    title: "Vence la inflación.",
+    description: "Tasas de cambio en tiempo real y datos históricos para ayudarte a decidir el mejor momento para comprar.",
     image: require("@/assets/images/onboarding/step1.png")
   },
   {
-    title: "Compare Store Prices.",
-    description: "Find the cheapest place to buy your list. We track prices across local supermarkets.",
+    title: "Compara precios.",
+    description: "Encuentra el lugar más barato para comprar tu lista. Seguimos los precios en supermercados locales.",
     image: require("@/assets/images/onboarding/step2.png")
   },
   {
-    title: "Plan Smart, Spend Less.",
-    description: "Create monthly budgets for groceries and pharmacy. Let us estimate the cost before you leave home.",
+    title: "Planifica y ahorra.",
+    description: "Crea presupuestos mensuales para mercado y farmacia. Estima el costo antes de salir de casa.",
     image: require("@/assets/images/onboarding/step3.png")
   }
 ];
@@ -57,7 +57,7 @@ export default function OnboardingScreen() {
       <View style={styles.topBar}>
         <Link href="/(public)/welcome" asChild>
           <Text style={[styles.skipButton, { color: primaryColor }]}>
-            Skip
+            Omitir
           </Text>
         </Link>
       </View>
@@ -113,7 +113,7 @@ export default function OnboardingScreen() {
             onPress={() => router.push('/(public)/welcome')}
           >
             <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>
-              Get Started
+              Comenzar
             </Text>
           </TouchableOpacity>
         ) : (
@@ -122,7 +122,7 @@ export default function OnboardingScreen() {
             onPress={nextStep}
           >
             <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>
-              Next
+              Siguiente
             </Text>
           </TouchableOpacity>
         )}

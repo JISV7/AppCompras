@@ -27,8 +27,8 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
   const router = useRouter();
 
   return (
-    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+    <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose} statusBarTranslucent>
+      <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
         
         {/* The Sheet */}
         <Pressable style={[styles.sheet, { backgroundColor: sheetColor }]} onPress={(e) => e.stopPropagation()}>
@@ -108,7 +108,7 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
 
 const styles = StyleSheet.create({
   overlay: { 
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' 
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' 
   },
   sheet: { 
     borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40,

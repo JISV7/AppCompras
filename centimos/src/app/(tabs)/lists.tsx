@@ -127,8 +127,8 @@ export default function ListsScreen() {
       </TouchableOpacity>
 
       {/* Create List Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+      <Modal visible={modalVisible} transparent animationType="fade" statusBarTranslucent>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
           <View style={[styles.modalContent, { backgroundColor: cardColor }]}>
             <Text style={[styles.modalTitle, { color: textColor }]}>New List</Text>
 
@@ -169,14 +169,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 15 },
   title: { fontSize: 32, fontWeight: 'bold' },
-  listContent: { padding: 20, paddingBottom: 100 },
+  listContent: { padding: 20, paddingBottom: 120 },
   card: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 12, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
   cardIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E3F2FD', alignItems: 'center', justifyContent: 'center', marginRight: 15 },
   cardContent: { flex: 1 },
   cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
   cardSubtitle: { fontSize: 14, color: '#888' },
   fab: { position: 'absolute', bottom: 30, right: 30, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '85%', padding: 20, borderRadius: 12, elevation: 5 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   input: { borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 15, fontSize: 16 },

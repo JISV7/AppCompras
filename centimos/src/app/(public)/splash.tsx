@@ -73,10 +73,10 @@ export default function SplashScreen() {
         {/* App Name */}
         <View style={styles.appNameContainer}>
           <Text style={[styles.appName, { color: textColor }]}>
-            Centimos<Text style={{ color: primaryColor }}>VE</Text>
+            Céntimos<Text style={{ color: primaryColor }}>VE</Text>
           </Text>
           <Text style={[styles.appSubtitle, { color: useThemeColor({}, 'textSecondary') }]}>
-            Smart Budgeting
+            Presupuesto Inteligente
           </Text>
         </View>
       </View>
@@ -84,7 +84,7 @@ export default function SplashScreen() {
       {/* Footer: Attribution */}
       <View style={styles.footer}>
         <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
-          Powered by Smart Data
+          Potenciado por Datos Inteligentes
         </Text>
         <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
       </View>

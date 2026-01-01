@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert, Switch, ScrollView } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
 import { StoreSelectorModal } from '../stores/StoreSelectorModal';
 
@@ -28,6 +29,7 @@ interface ListItemSheetProps {
 }
 
 export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocked = false }: ListItemSheetProps) {
+    const insets = useSafeAreaInsets();
     const sheetColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'textMain');
     const subTextColor = '#888';
@@ -61,14 +63,9 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Unknown';
 
-        // The date string from the backend is naive (e.g., "2025-12-29 22:05:27.984079")
-        // but represents UTC time. We need to parse it as such.
-        // We convert it to ISO 8601 format by replacing the space with 'T' and appending 'Z'.
         const isoUtcString = dateString.includes('T') ? dateString : dateString.replace(' ', 'T') + 'Z';
-
         const date = new Date(isoUtcString);
 
-        // Options for formatting. Using undefined for locale uses the device's default.
         const dateOptions: Intl.DateTimeFormatOptions = {
             year: 'numeric',
             month: 'long',
@@ -78,7 +75,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
         const timeOptions: Intl.DateTimeFormatOptions = {
             hour: '2-digit',
             minute: '2-digit',
-            hour12: true, // Use 12-hour format with AM/PM
+            hour12: true,
         };
 
         const formattedDate = date.toLocaleDateString(undefined, dateOptions);
@@ -87,10 +84,9 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
         return `${formattedDate}, ${formattedTime}`;
     };
 
-    // --- QTY Handlers ---
     const handleQtyPress = () => {
         if (isPurchasedState) {
-            Alert.alert("Item Purchased", "Unmark as purchased to edit quantity.");
+            Alert.alert("Item Comprado", "Desmarca como comprado para editar la cantidad.");
             return;
         }
         if (onUpdateItem) {
@@ -111,19 +107,18 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
             }
             setIsEditingQty(false);
         } else {
-            Alert.alert("Invalid", "1-99");
+            Alert.alert("Inválido", "1-99");
             setIsEditingQty(false);
         }
     };
 
-    // --- Price Handlers ---
     const handlePricePress = () => {
         if (priceLocked) {
-            Alert.alert("Price Locked", "List is completed. Re-open to edit price.");
+            Alert.alert("Precio Bloqueado", "La lista está completada. Reabre la lista para editar el precio.");
             return;
         }
         if (isPurchasedState) {
-            Alert.alert("Item Purchased", "Unmark as purchased to edit price.");
+            Alert.alert("Item Comprado", "Desmarca como comprado para editar el precio.");
             return;
         }
         if (onUpdateItem) {
@@ -138,7 +133,6 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
         if (saveLock.current) return;
 
         if (priceValue === '' || priceValue === '0') {
-             // Reset to global defaults
              saveLock.current = true;
              onUpdateItem?.({ planned_price: null });
              setIsEditingPrice(false);
@@ -153,7 +147,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
             }
             setIsEditingPrice(false);
         } else {
-            Alert.alert("Invalid Price", "Must be 0 or greater");
+            Alert.alert("Precio Inválido", "Debe ser 0 o mayor");
             setIsEditingPrice(false);
         }
     };
@@ -170,21 +164,21 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
     };
 
     return (
-        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlayWrapper}>
-                <Pressable style={styles.overlay} onPress={onClose}>
-                    <Pressable style={[styles.sheet, { backgroundColor: sheetColor }]} onPress={(e) => e.stopPropagation()}>
+                <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
+                    <Pressable style={[styles.sheet, { backgroundColor: sheetColor, paddingBottom: insets.bottom + 20 }]} onPress={(e) => e.stopPropagation()}>
 
                         <View style={styles.handle} />
 
                         <View style={styles.header}>
-                            <Text style={[styles.title, { color: textColor }]}>Item Details</Text>
+                            <Text style={[styles.title, { color: textColor }]}>Detalle del Item</Text>
                             <TouchableOpacity onPress={onClose}>
                                 <Ionicons name="close-circle" size={30} color={subTextColor} />
                             </TouchableOpacity>
                         </View>
 
-                        <View style={styles.content}>
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                             {/* Product Info */}
                             <View style={styles.productRow}>
                                 {item.productImage ? (
@@ -208,7 +202,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                     onPress={handleQtyPress}
                                     activeOpacity={0.8}
                                 >
-                                    <Text style={styles.statLabel}>Qty (Tap to Edit)</Text>
+                                    <Text style={styles.statLabel}>Cant. (Toca)</Text>
                                     {isEditingQty ? (
                                         <TextInput
                                             style={[styles.statValue, { color: textColor, minWidth: 40, textAlign: 'center', borderBottomWidth: 1, borderBottomColor: primaryColor }]}
@@ -231,7 +225,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                     onPress={handlePricePress}
                                     activeOpacity={0.8}
                                 >
-                                    <Text style={styles.statLabel}>Avg. Price (Edit)</Text>
+                                    <Text style={styles.statLabel}>Precio ($)</Text>
                                     {isEditingPrice ? (
                                         <TextInput
                                             style={[styles.statValue, { color: primaryColor, minWidth: 60, textAlign: 'center', borderBottomWidth: 1, borderBottomColor: primaryColor }]}
@@ -248,7 +242,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                                 ${(item.planned_price ?? item.estimatedPrice ?? 0).toFixed(2)}
                                             </Text>
                                             {item.planned_price !== undefined && item.planned_price !== null && (
-                                                <Text style={{ fontSize: 10, color: '#666', textAlign: 'center' }}>(User Set)</Text>
+                                                <Text style={{ fontSize: 10, color: '#666', textAlign: 'center' }}>(Editado)</Text>
                                             )}
                                         </View>
                                     )}
@@ -256,7 +250,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
                                 {/* PREDICTIVE BOX */}
                                 <View style={[styles.statBox, { backgroundColor: '#E8F5E9' }]}>
-                                    <Text style={styles.statLabel}>Predictive</Text>
+                                    <Text style={styles.statLabel}>Predictivo</Text>
                                     <Text style={[styles.statValue, { color: '#2E7D32' }]}>
                                         ${item.predictedPrice ? item.predictedPrice.toFixed(2) : '-'}
                                     </Text>
@@ -265,13 +259,13 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
                             {/* Added At Info */}
                             <View style={[styles.detailRow, { borderBottomColor: '#eee', borderBottomWidth: 1 }]}>
-                                <Text style={{ color: subTextColor }}>Added on</Text>
+                                <Text style={{ color: subTextColor }}>Agregado el</Text>
                                 <Text style={{ color: textColor, fontWeight: '500' }}>{formatDate(item.added_at)}</Text>
                             </View>
 
                             {/* Is Purchased Toggle */}
                             <View style={[styles.detailRow, { borderBottomColor: '#eee', borderBottomWidth: 1 }]}>
-                                <Text style={{ color: subTextColor }}>Purchased</Text>
+                                <Text style={{ color: subTextColor }}>¿Comprado?</Text>
                                 <Switch
                                     onValueChange={handleTogglePurchased}
                                     value={isPurchasedState}
@@ -288,16 +282,16 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                             >
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <MaterialIcons name="storefront" size={20} color={subTextColor} />
-                                    <Text style={{ color: subTextColor }}>Store</Text>
+                                    <Text style={{ color: subTextColor }}>Tienda</Text>
                                 </View>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                     <Text style={{ color: textColor, fontWeight: '500' }}>
-                                        {item.storeName || 'Select Store...'}
+                                        {item.storeName || 'Seleccionar...'}
                                     </Text>
                                     <Ionicons name="chevron-forward" size={16} color={subTextColor} />
                                 </View>
                             </TouchableOpacity>
-                        </View>
+                        </ScrollView>
 
                         <StoreSelectorModal
                             visible={storeSelectorVisible}
@@ -313,12 +307,12 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
 const styles = StyleSheet.create({
     overlayWrapper: { flex: 1 },
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 400, paddingBottom: 40, marginBottom: 60 },
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+    sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 400 },
     handle: { width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 10, alignSelf: 'center', marginBottom: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
     title: { fontSize: 20, fontWeight: 'bold' },
-    content: { flex: 1 },
+    scrollContent: { paddingBottom: 0 },
     productRow: { flexDirection: 'row', marginBottom: 25 },
     image: { width: 80, height: 80, borderRadius: 12, backgroundColor: 'white', resizeMode: 'contain' },
     imagePlaceholder: { width: 80, height: 80, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -328,6 +322,6 @@ const styles = StyleSheet.create({
     grid: { flexDirection: 'row', gap: 15, marginBottom: 25 },
     statBox: { flex: 1, padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     statLabel: { fontSize: 12, color: '#666', marginBottom: 5 },
-    statValue: { fontSize: 20, fontWeight: 'bold', lineHeight: 28 }, // Added lineHeight for input alignment
-    detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15 }
+    statValue: { fontSize: 20, fontWeight: 'bold', lineHeight: 28 }, 
+    detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, alignItems: 'center' }
 });

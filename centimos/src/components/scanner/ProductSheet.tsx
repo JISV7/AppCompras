@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, ActivityIndicator, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, ActivityIndicator, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert, ScrollView } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { StoreSelectorModal } from '../stores/StoreSelectorModal';
@@ -18,6 +19,7 @@ interface ProductSheetProps {
 }
 
 export function ProductSheet({ visible, loading, product, barcode, mode = 'search', onClose, onRescan, onAddToList }: ProductSheetProps) {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const sheetColor = useThemeColor({}, 'background'); 
   const textColor = useThemeColor({}, 'textMain');
@@ -148,14 +150,15 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
       animationType="slide" 
       transparent={true}
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlayWrapper}
       >
-        <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
           <Pressable 
-            style={[styles.sheet, { backgroundColor: sheetColor }]} 
+            style={[styles.sheet, { backgroundColor: sheetColor, paddingBottom: insets.bottom + 20 }]} 
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.handle} />
@@ -169,36 +172,38 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
               </TouchableOpacity>
             </View>
 
-            <View style={styles.content}>
-              {loading ? (
-                <View style={styles.centerBox}>
-                  <ActivityIndicator size="large" color={primaryColor} />
-                  <Text style={{ color: subTextColor, marginTop: 15 }}>Consultando base de datos...</Text>
-                </View>
-              ) : product ? (
-                currentView === 'reporting' ? renderReportingView() : renderInfoView()
-              ) : (
-                <View style={styles.centerBox}>
-                  <View style={styles.unknownIconCircle}>
-                    <FontAwesome5 name="question" size={40} color={subTextColor} />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+              <View style={styles.content}>
+                {loading ? (
+                  <View style={styles.centerBox}>
+                    <ActivityIndicator size="large" color={primaryColor} />
+                    <Text style={{ color: subTextColor, marginTop: 15 }}>Consultando base de datos...</Text>
                   </View>
-                  <Text style={[styles.notFoundTitle, { color: textColor }]}>¡Nuevo Descubrimiento!</Text>
-                  <Text style={[styles.notFoundText, { color: subTextColor }]}>No tenemos este producto en nuestra base de datos todavía.</Text>
-                  <View style={styles.barcodeBox}>
-                    <Ionicons name="barcode-outline" size={20} color={subTextColor} />
-                    <Text style={{ color: subTextColor, fontFamily: 'monospace' }}> {barcode} </Text>
+                ) : product ? (
+                  currentView === 'reporting' ? renderReportingView() : renderInfoView()
+                ) : (
+                  <View style={styles.centerBox}>
+                    <View style={styles.unknownIconCircle}>
+                      <FontAwesome5 name="question" size={40} color={subTextColor} />
+                    </View>
+                    <Text style={[styles.notFoundTitle, { color: textColor }]}>¡Nuevo Descubrimiento!</Text>
+                    <Text style={[styles.notFoundText, { color: subTextColor }]}>No tenemos este producto en nuestra base de datos todavía.</Text>
+                    <View style={styles.barcodeBox}>
+                      <Ionicons name="barcode-outline" size={20} color={subTextColor} />
+                      <Text style={{ color: subTextColor, fontFamily: 'monospace' }}> {barcode} </Text>
+                    </View>
+                    <TouchableOpacity style={[styles.createButton, { backgroundColor: primaryColor }]}
+                      onPress={() => {
+                        onClose();
+                        router.push({ pathname: "/product/create", params: { barcode: barcode } });
+                      }}
+                    >
+                      <Text style={styles.createButtonText}>Crear Producto</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={[styles.createButton, { backgroundColor: primaryColor }]}
-                    onPress={() => {
-                      onClose();
-                      router.push({ pathname: "/product/create", params: { barcode: barcode } });
-                    }}
-                  >
-                    <Text style={styles.createButtonText}>Crear Producto</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
+                )}
+              </View>
+            </ScrollView>
 
             {!loading && (
               <TouchableOpacity style={styles.rescanButton} onPress={onRescan}>
@@ -224,11 +229,12 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
 const styles = StyleSheet.create({
   overlayWrapper: { flex: 1 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 450, paddingBottom: 40, shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 450, shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
   handle: { width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 10, alignSelf: 'center', marginBottom: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 20, fontWeight: 'bold' },
   content: { flex: 1 },
+  scrollContent: { paddingBottom: 20 },
   centerBox: { alignItems: 'center', justifyContent: 'center', marginTop: 10 },
   productRow: { flexDirection: 'row', marginBottom: 25 },
   image: { width: 90, height: 90, borderRadius: 12, backgroundColor: 'white', resizeMode: 'contain' },

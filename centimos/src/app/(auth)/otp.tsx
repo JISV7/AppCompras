@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Link, useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,6 +37,29 @@ export default function OtpScreen() {
   }, [timer]);
 
   const handleOtpChange = (index: number, value: string) => {
+    // Handle paste logic if the length is > 1
+    if (value.length > 1) {
+      // Check if it's numeric
+      if (/^\d+$/.test(value)) {
+        const newOtp = [...otp];
+        const chars = value.split('').slice(0, 6); // Take up to 6 digits
+        
+        // Fill starting from the current index
+        for (let i = 0; i < chars.length; i++) {
+          if (index + i < 6) {
+            newOtp[index + i] = chars[i];
+          }
+        }
+        setOtp(newOtp);
+        
+        // Focus the input after the pasted segment, or the last one
+        const nextIndex = Math.min(index + chars.length, 5);
+        inputRefs.current[nextIndex]?.focus();
+      }
+      return;
+    }
+
+    // Normal single character input
     if (/^\d*$/.test(value)) {
       const newOtp = [...otp];
       newOtp[index] = value;
@@ -44,8 +67,19 @@ export default function OtpScreen() {
 
       // Auto-focus next input
       if (value && index < 5) {
-        // @ts-ignore
         inputRefs.current[index + 1]?.focus();
+      }
+    }
+  };
+
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace') {
+      // If current box is empty and we are not at the start, move back and delete
+      if (otp[index] === '' && index > 0) {
+        const newOtp = [...otp];
+        newOtp[index - 1] = '';
+        setOtp(newOtp);
+        inputRefs.current[index - 1]?.focus();
       }
     }
   };
@@ -54,7 +88,7 @@ export default function OtpScreen() {
     const code = otp.join('');
     
     if (code.length !== 6) {
-      Alert.alert('Error', 'Please enter the complete 6-digit code');
+      Alert.alert('Error', 'Por favor ingresa el código completo de 6 dígitos');
       return;
     }
 
@@ -67,8 +101,8 @@ export default function OtpScreen() {
 
     if (!passwordRegex.test(newPassword)) {
       Alert.alert(
-        'Weak Password', 
-        'Password must be at least 8 characters long and contain at least 1 number and 1 symbol.'
+        'Contraseña débil', 
+        'La contraseña debe tener al menos 8 caracteres y contener al menos 1 número y 1 símbolo.'
       );
       return;
     }
@@ -81,7 +115,7 @@ export default function OtpScreen() {
         new_password: newPassword
       });
 
-      Alert.alert('Success', 'Password updated! Please login.', [
+      Alert.alert('Éxito', '¡Contraseña actualizada! Por favor inicia sesión.', [
         { text: 'OK', onPress: () => router.replace('/(auth)/login') }
       ]);
       
@@ -92,10 +126,10 @@ export default function OtpScreen() {
       const backendMessage = error.response?.data?.detail;
       
       // 2. Fallback message if backend doesn't speak
-      const displayMessage = backendMessage || 'Invalid code or expired.';
+      const displayMessage = backendMessage || 'Código inválido o expirado.';
 
       // 3. Show a nice Alert instead of crashing
-      Alert.alert('Verification Failed', displayMessage);
+      Alert.alert('Verificación fallida', displayMessage);
     } finally {
       setLoading(false);
     }
@@ -105,9 +139,9 @@ export default function OtpScreen() {
     try {
       await api.post('/auth/forgot-password', { email });
       setTimer(59);
-      Alert.alert('Sent', 'A new code has been sent.');
+      Alert.alert('Enviado', 'Se ha enviado un nuevo código.');
     } catch (e) {
-      Alert.alert('Error', 'Could not resend code.');
+      Alert.alert('Error', 'No se pudo reenviar el código.');
     }
   };
 
@@ -119,13 +153,13 @@ export default function OtpScreen() {
           {/* Back Button */}
           <View style={styles.topBar}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <MaterialIcons name="arrow-back-ios-new" size={24} color={textColor} />
+              <MaterialIcons name="arrow-back" size={24} color={textColor} />
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.headline, { color: textColor }]}>Reset Password</Text>
+          <Text style={[styles.headline, { color: textColor }]}>Restablecer contraseña</Text>
           <Text style={[styles.bodyText, { color: textSecondaryColor }]}>
-            Enter the code sent to <Text style={{ fontWeight: 'bold' }}>{email}</Text> and your new password.
+            Ingresa el código enviado a <Text style={{ fontWeight: 'bold' }}>{email}</Text> y tu nueva contraseña.
           </Text>
 
           {/* OTP Inputs */}
@@ -138,8 +172,9 @@ export default function OtpScreen() {
                 style={[styles.otpInput, { color: textColor, backgroundColor: surfaceColor }]}
                 value={digit}
                 onChangeText={(value) => handleOtpChange(index, value)}
+                onKeyPress={(e) => handleKeyPress(e, index)}
                 keyboardType="number-pad"
-                maxLength={1}
+                maxLength={6} // Allow pasting up to 6 chars temporarily
                 selectTextOnFocus
               />
             ))}
@@ -147,11 +182,11 @@ export default function OtpScreen() {
 
           {/* New Password Input */}
           <View style={styles.passwordContainer}>
-             <Text style={[styles.label, { color: textSecondaryColor }]}>New Password</Text>
+             <Text style={[styles.label, { color: textSecondaryColor }]}>Nueva contraseña</Text>
              <TextInput
                 style={[styles.passwordInput, { color: textColor, backgroundColor: surfaceColor }]}
-                placeholder="Enter new password"
-                placeholderTextColor={textSecondaryColor}
+                placeholder="Ingresa nueva contraseña"
+                placeholderTextColor="#9CA3AF"
                 value={newPassword}
                 onChangeText={setNewPassword}
                 secureTextEntry
@@ -161,10 +196,10 @@ export default function OtpScreen() {
           {/* Timer */}
           <View style={styles.timerContainer}>
             {timer > 0 ? (
-              <Text style={{ color: textSecondaryColor }}>Resend in {timer}s</Text>
+              <Text style={{ color: textSecondaryColor }}>Reenviar en {timer}s</Text>
             ) : (
               <TouchableOpacity onPress={handleResend}>
-                <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Resend Code</Text>
+                <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Reenviar código</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -175,7 +210,7 @@ export default function OtpScreen() {
             onPress={handleVerifyAndReset}
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="#fff"/> : <Text style={styles.verifyButtonText}>Confirm Change</Text>}
+            {loading ? <ActivityIndicator color="#fff"/> : <Text style={styles.verifyButtonText}>Confirmar cambio</Text>}
           </TouchableOpacity>
 
         </ScrollView>
@@ -192,37 +227,16 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    paddingTop: 24,
+    paddingBottom: 24,
     zIndex: 10,
   },
   backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 32,
-  },
-  iconContainer: {
-    marginBottom: 24,
-    marginTop: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconWrapper: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   headline: {
     fontSize: 28,
@@ -247,29 +261,21 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#E5E7EB',
     textAlign: 'center',
     fontSize: 20,
     fontWeight: '600',
     backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   timerContainer: {
     alignItems: 'center',
     gap: 2,
     marginBottom: 32,
-  },
-  timerText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  resendLink: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  buttonContainer: {
-    width: '100%',
-    paddingHorizontal: 24,
-    paddingBottom: 32,
   },
   verifyButton: {
     width: '100%',
@@ -279,7 +285,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#10b77f',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },

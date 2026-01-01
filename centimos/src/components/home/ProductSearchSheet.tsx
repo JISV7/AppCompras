@@ -58,8 +58,8 @@ export function ProductSearchSheet({ visible, query, onClose, onProductSelect }:
     );
 
     return (
-        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-            <Pressable style={styles.overlay} onPress={onClose}>
+        <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
+            <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
                 <Pressable style={[styles.sheet, { backgroundColor: sheetColor }]} onPress={(e) => e.stopPropagation()}>
                     <View style={styles.handle} />
                     <View style={styles.header}>
@@ -92,7 +92,7 @@ export function ProductSearchSheet({ visible, query, onClose, onProductSelect }:
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
     sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, height: '85%', paddingBottom: 40 },
     handle: { width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 10, alignSelf: 'center', marginBottom: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },

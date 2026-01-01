@@ -1,9 +1,8 @@
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function WelcomeScreen() {
@@ -42,10 +41,10 @@ export default function WelcomeScreen() {
         {/* Text Content Area */}
         <View style={styles.textArea}>
           <Text style={[styles.title, { color: textColor }]}>
-            Shop Smarter in Venezuela
+            Compra inteligente en Venezuela
           </Text>
           <Text style={[styles.subtitle, { color: textSubColor }]}>
-            Track prices, monitor the dollar, and save on every purchase.
+            Sigue los precios, monitorea el dólar y ahorra en cada compra.
           </Text>
         </View>
 
@@ -53,25 +52,17 @@ export default function WelcomeScreen() {
         <View style={styles.buttonArea}>
           {/* Create Account Button (Primary) */}
           <Link href="/(auth)/register" asChild>
-            <TouchableOpacity style={[styles.primaryButton, { backgroundColor: primaryColor }]}>
-              <Text style={styles.primaryButtonText}>Create Account</Text>
+            <TouchableOpacity style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>Crear cuenta</Text>
             </TouchableOpacity>
           </Link>
 
-          {/* Login Button (Outline/Secondary) */}
+          {/* Login Button (Primary) */}
           <Link href="/(auth)/login" asChild>
-            <TouchableOpacity style={[styles.secondaryButton, { borderColor: `${primaryColor}33` }]}>
-              <Text style={[styles.secondaryButtonText, { color: primaryColor }]}>Login</Text>
+            <TouchableOpacity style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
             </TouchableOpacity>
           </Link>
-        </View>
-
-        {/* Guest Link (Tertiary) */}
-        <View style={styles.guestArea}>
-          <TouchableOpacity style={styles.guestButton}>
-            <Text style={[styles.guestButtonText, { color: textSubColor }]}>Continue as Guest</Text>
-            <Text style={[styles.guestButtonIcon, { color: primaryColor }]}>→</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -106,16 +97,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: '40%',
-    paddingTop: 32,
+    paddingTop: 16,
   },
   logoContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -123,11 +113,11 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   logoIcon: {
-    fontSize: 32,
+    fontSize: 28,
   },
   illustrationContainer: {
     width: '100%',
-    height: 256,
+    height: 200,
     position: 'relative',
   },
   illustration: {
@@ -154,51 +144,35 @@ const styles = StyleSheet.create({
   },
   textArea: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    lineHeight: 40,
+    lineHeight: 36,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
     maxWidth: 280,
   },
   buttonArea: {
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   primaryButton: {
-    height: 56,
+    height: 50,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#10b77f',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.39,
-    shadowRadius: 14,
-    elevation: 5,
+    marginBottom: 12,
+    backgroundColor: '#10b77f',
   },
   primaryButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    backgroundColor: 'transparent',
-  },
-  secondaryButtonText: {
+    color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
   },

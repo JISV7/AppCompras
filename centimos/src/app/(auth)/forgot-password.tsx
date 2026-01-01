@@ -1,11 +1,11 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import api from '@/services/api'; // Import your API
+import api from '@/services/api';
 
 export default function ForgotPasswordScreen() {
   const color = useThemeColor({}, 'background');
@@ -21,7 +21,7 @@ export default function ForgotPasswordScreen() {
 
   const handleSendResetLink = async () => {
     if (!email.includes('@')) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      Alert.alert('Correo inválido', 'Por favor ingresa un correo electrónico válido.');
       return;
     }
 
@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen() {
       await api.post('/auth/forgot-password', { email });
       
       // 2. Success Feedback
-      Alert.alert('Email Sent', 'Check your inbox for the code.');
+      Alert.alert('Correo enviado', 'Revisa tu bandeja de entrada para ver el código.');
       
       // 3. Navigate to OTP screen with the email
       router.push({
@@ -40,7 +40,7 @@ export default function ForgotPasswordScreen() {
       });
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', 'Could not send reset code. Please try again.');
+      Alert.alert('Error', 'No se pudo enviar el código de restablecimiento. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -52,12 +52,14 @@ export default function ForgotPasswordScreen() {
       style={{ flex: 1 }}
     >
       <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
-        <View style={styles.topBar}>
-          <Link href="/(auth)/login" asChild>
-            <TouchableOpacity style={styles.backButton}>
-              <MaterialIcons name="arrow-back-ios-new" size={24} color={textColor} />
-            </TouchableOpacity>
-          </Link>
+        {/* Header Section with Back Arrow */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => router.back()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={textColor} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView 
@@ -67,10 +69,10 @@ export default function ForgotPasswordScreen() {
         >
           <View style={styles.content}>
             <Text style={[styles.headline, { color: textColor }]}>
-              Forgot Password?
+              ¿Olvidaste tu contraseña?
             </Text>
             <Text style={[styles.bodyText, { color: textSecondaryColor }]}>
-              Don't worry! It happens. Please enter the email associated with your account.
+              ¡No te preocupes! Suele pasar. Por favor ingresa el correo asociado a tu cuenta.
             </Text>
 
             <View style={styles.spacer} />
@@ -79,7 +81,7 @@ export default function ForgotPasswordScreen() {
               <View style={styles.inputGroup}>
                 <TextInput
                   style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
-                  placeholder="Enter your email"
+                  placeholder="Ingresa tu correo"
                   placeholderTextColor={textSecondaryColor}
                   value={email}
                   onChangeText={setEmail}
@@ -96,7 +98,7 @@ export default function ForgotPasswordScreen() {
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text style={styles.actionButtonText}>Send Instructions</Text>
+                  <Text style={styles.actionButtonText}>Enviar instrucciones</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -112,19 +114,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f6f8f7',
   },
-  topBar: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f6f8f7',
     padding: 16,
-    paddingBottom: 8,
-    justifyContent: 'flex-start',
-    zIndex: 50,
+    paddingTop: 24,
+    zIndex: 10,
   },
   backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
@@ -140,22 +140,6 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     marginHorizontal: 'auto',
     paddingHorizontal: 16,
-  },
-  headerImageContainer: {
-    width: '100%',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  headerImageWrapper: {
-    width: '100%',
-    justifyContent: 'center',
-  },
-  headerImage: {
-    width: 192,
-    height: 192,
-    alignSelf: 'center',
-    backgroundColor: 'transparent',
-    borderRadius: 16,
   },
   headline: {
     fontSize: 32,
@@ -205,13 +189,6 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     transform: [{ translateY: -12 }, { scale: 0.85 }],
   },
-  emailIcon: {
-    position: 'absolute',
-    right: 16,
-    top: '50%',
-    transform: [{ translateY: -10 }],
-    zIndex: 1,
-  },
   actionButton: {
     width: '100%',
     borderRadius: 16,
@@ -228,14 +205,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  footer: {
-    marginTop: 32,
-    paddingVertical: 32,
-    textAlign: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    textAlign: 'center',
   },
 });

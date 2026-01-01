@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import httpx
 from bs4 import BeautifulSoup
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.exchange_rate import ExchangeRate
@@ -70,6 +71,7 @@ async def update_exchange_rate(db: AsyncSession):
     """
     Fetches the latest USD to VES exchange rate and saves it to the database.
     It tries the BCV website first, then a fallback API.
+    If the fetched rate is the same as the last one in the DB, it skips saving.
     """
     rate = None
     source = None
@@ -86,7 +88,22 @@ async def update_exchange_rate(db: AsyncSession):
             source = "DolarAPI"
 
     if rate and source:
-        logger.info(f"Saving exchange rate {rate} from source {source} to database.")
+        # --- NEW VALIDATION: Check for duplicate consecutive rates ---
+        stmt = (
+            select(ExchangeRate)
+            .where(ExchangeRate.currency_code == "USD")
+            .order_by(desc(ExchangeRate.recorded_at))
+            .limit(1)
+        )
+        result = await db.execute(stmt)
+        latest_record = result.scalars().first()
+
+        if latest_record and latest_record.rate_to_ves == rate:
+            logger.info(f"Rate {rate} hasn't changed since {latest_record.recorded_at}. Skipping save.")
+            return latest_record
+
+        # Save new rate if it's different or if it's the first record
+        logger.info(f"Saving new exchange rate {rate} from source {source} to database.")
         new_rate = ExchangeRate(
             currency_code="USD",
             rate_to_ves=rate,

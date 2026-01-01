@@ -82,8 +82,8 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlay}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
         <View style={[styles.modalContent, { backgroundColor: bgColor }]}>
           
           <View style={styles.header}>
@@ -157,7 +157,7 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   modalContent: {

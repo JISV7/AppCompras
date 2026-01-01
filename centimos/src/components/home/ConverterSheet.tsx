@@ -47,10 +47,10 @@ export function ConverterSheet({ visible, rate, onClose }: ConverterSheetProps) 
     };
 
     return (
-        <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+        <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose} statusBarTranslucent>
             <KeyboardAvoidingView 
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-                style={styles.overlay}
+                style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}
             >
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <View style={[styles.content, { backgroundColor: sheetColor }]}>
@@ -116,7 +116,7 @@ export function ConverterSheet({ visible, rate, onClose }: ConverterSheetProps) 
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
     content: { borderRadius: 24, padding: 24, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     title: { fontSize: 20, fontWeight: 'bold' },

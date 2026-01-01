@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,10 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+  
   const { register } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -30,12 +34,12 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!email || !password || !fullName) {
-      alert("Please fill in all fields");
+      alert("Por favor completa todos los campos");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      alert("Las contraseñas no coinciden");
       return;
     }
 
@@ -75,10 +79,10 @@ export default function RegisterScreen() {
             <MaterialIcons name="savings" size={32} color={primaryColor} />
           </View>
           <Text style={[styles.title, { color: textColor }]}>
-            Create Account
+            Crear cuenta
           </Text>
           <Text style={[styles.subtitle, { color: textSecondaryColor }]}>
-            Join CentimosVE to start optimizing your budget.
+            Únete a CéntimosVE para empezar a optimizar tu presupuesto.
           </Text>
         </View>
 
@@ -87,38 +91,49 @@ export default function RegisterScreen() {
           <View style={styles.inputGroup}>
             <TextInput
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
-              placeholder="John Doe"
+              placeholder="Centimos App"
               placeholderTextColor="#9CA3AF"
               value={fullName}
               onChangeText={setFullName}
               autoCapitalize="words"
+              returnKeyType="next"
+              onSubmitEditing={() => emailRef.current?.focus()}
+              submitBehavior="submit"
             />
-            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Full Name</Text>
+            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Nombre completo</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <TextInput
+              ref={emailRef}
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
-              placeholder="name@example.com"
+              placeholder="Centimos@shopping.com"
               placeholderTextColor="#9CA3AF"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              submitBehavior="submit"
             />
-            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Email Address</Text>
+            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Correo electrónico</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <TextInput
+              ref={passwordRef}
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
-              placeholder="Password"
+              placeholder="••••••••"
               placeholderTextColor="#9CA3AF"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              returnKeyType="next"
+              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              submitBehavior="submit"
             />
-            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Password</Text>
+            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Contraseña</Text>
             <TouchableOpacity style={styles.passwordToggle} onPress={togglePasswordVisibility}>
               <MaterialIcons
                 name={showPassword ? "visibility" : "visibility-off"}
@@ -140,7 +155,7 @@ export default function RegisterScreen() {
               ]}>
                 {passwordStrength.length && <MaterialIcons name="check" size={10} color="white" />}
               </View>
-              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>8+ chars</Text>
+              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>8+ caracteres</Text>
             </View>
 
             <View style={[styles.strengthItem, { opacity: passwordStrength.number ? 1 : 0.5 }]}>
@@ -153,7 +168,7 @@ export default function RegisterScreen() {
               ]}>
                 {passwordStrength.number && <MaterialIcons name="check" size={10} color="white" />}
               </View>
-              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>1 number</Text>
+              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>1 número</Text>
             </View>
 
              <View style={[styles.strengthItem, { opacity: passwordStrength.symbol ? 1 : 0.5 }]}>
@@ -166,20 +181,22 @@ export default function RegisterScreen() {
               ]}>
                 {passwordStrength.symbol && <MaterialIcons name="check" size={10} color="white" />}
               </View>
-              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>1 symbol</Text>
+              <Text style={[styles.strengthText, { color: textSecondaryColor }]}>1 símbolo</Text>
             </View>
           </View>
 
           <View style={styles.inputGroup}>
             <TextInput
+              ref={confirmPasswordRef}
               style={[styles.floatingInput, { color: textColor, backgroundColor: surfaceColor }]}
-              placeholder="Confirm Password"
+              placeholder="••••••••"
               placeholderTextColor="#9CA3AF"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
+              returnKeyType="done"
             />
-            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Confirm Password</Text>
+            <Text style={[styles.floatingLabel, { color: textSecondaryColor }]}>Confirmar contraseña</Text>
             <TouchableOpacity style={styles.passwordToggle} onPress={toggleConfirmPasswordVisibility}>
               <MaterialIcons
                 name={showConfirmPassword ? "visibility" : "visibility-off"}
@@ -193,14 +210,14 @@ export default function RegisterScreen() {
             style={[styles.signupButton, { backgroundColor: primaryColor }]}
             onPress={handleRegister}
           >
-            <Text style={styles.signupButtonText}>Sign Up</Text>
+            <Text style={styles.signupButtonText}>Registrarse</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.dividerContainer}>
           <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
           <Text style={[styles.dividerText, { backgroundColor: color, color: useThemeColor({}, 'textSecondary') }]}>
-            Or continue with
+            O continuar con
           </Text>
           <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
         </View>
@@ -221,11 +238,11 @@ export default function RegisterScreen() {
       <View style={styles.footer}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
-            Already have an account?{' '}
+            ¿Ya tienes una cuenta?{' '}
           </Text>
           {/* CHANGED: Replaced Link with simple onPress */}
           <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-            <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Log In</Text>
+            <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Inicia sesión</Text>
           </TouchableOpacity>
         </View>
       </View>

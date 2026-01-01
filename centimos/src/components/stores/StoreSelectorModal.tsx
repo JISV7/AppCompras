@@ -94,8 +94,8 @@ export function StoreSelectorModal({ visible, onClose, onSelect }: StoreSelector
   );
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose} statusBarTranslucent>
+      <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
         <View style={[styles.content, { backgroundColor: bgColor }]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: textColor }]}>Select Store</Text>
@@ -137,7 +137,7 @@ export function StoreSelectorModal({ visible, onClose, onSelect }: StoreSelector
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
   content: { borderRadius: 20, maxHeight: '70%', padding: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   title: { fontSize: 18, fontWeight: 'bold' },

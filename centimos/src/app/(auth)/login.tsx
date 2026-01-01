@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Link, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useState, useRef } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,14 +18,17 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
+  const passwordRef = useRef<TextInput>(null);
+  
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Alert', 'Please fill in all fields');
+      Alert.alert('Alerta', 'Por favor completa todos los campos');
       return;
     }
     try {
@@ -36,33 +39,35 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
       <ThemedView style={[styles.container, { backgroundColor: color, paddingBottom: insets.bottom }]}>
+        {/* Header Section */}
+        <View style={styles.topHeader}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => router.back()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={textColor} />
+          </TouchableOpacity>
+          <View style={styles.spacer} />
+        </View>
+
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* Header Section */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <View style={[styles.logoWrapper, { backgroundColor: `${primaryColor}1a`, transform: [{ rotate: '3deg' }] }]}>
-                <MaterialIcons name="savings" size={40} color={primaryColor} />
-              </View>
-              <View style={styles.decorationDot}>
-                <MaterialIcons name="currency-exchange" size={14} color="white" />
-              </View>
+          <View style={styles.logoArea}>
+            <View style={[styles.logoContainer, { backgroundColor: `${primaryColor}1a` }]}>
+              <MaterialIcons name="savings" size={32} color={primaryColor} />
             </View>
 
             <Text style={[styles.title, { color: textColor }]}>
-              Welcome Back
+              Bienvenido de nuevo
             </Text>
 
             <Text style={[styles.subtitle, { color: textSecondaryColor }]}>
-              Optimize your grocery budget with CentimosVE.
+              Optimiza tu presupuesto de mercado con CéntimosVE.
             </Text>
           </View>
 
@@ -70,37 +75,42 @@ export default function LoginScreen() {
           <View style={styles.form}>
             {/* Email Field */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Email Address</Text>
+              <Text style={[styles.label, { color: textColor }]}>Correo electrónico</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.inputIconContainer}>
                   <MaterialIcons name="mail" size={20} color={textSecondaryColor} />
                 </View>
                 <TextInput
                   style={[styles.input, { color: textColor, backgroundColor: surfaceColor }]}
-                  placeholder="user@example.com"
+                  placeholder="usuario@ejemplo.com"
                   placeholderTextColor="#9CA3AF"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  submitBehavior="submit"
                 />
               </View>
             </View>
 
             {/* Password Field */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: textColor }]}>Password</Text>
+              <Text style={[styles.label, { color: textColor }]}>Contraseña</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.inputIconContainer}>
                   <MaterialIcons name="lock" size={20} color={textSecondaryColor} />
                 </View>
                 <TextInput
+                  ref={passwordRef}
                   style={[styles.input, { color: textColor, backgroundColor: surfaceColor }]}
                   placeholder="••••••••"
                   placeholderTextColor="#9CA3AF"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  returnKeyType="done"
                 />
                 <TouchableOpacity style={styles.passwordToggle} onPress={togglePasswordVisibility}>
                   <MaterialIcons
@@ -110,29 +120,21 @@ export default function LoginScreen() {
                   />
                 </TouchableOpacity>
               </View>
-              <Link href="/(auth)/forgot-password" asChild>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
                    <Text style={[styles.forgotPassword, { color: primaryColor }]}>
-                     Forgot Password?
+                     ¿Olvidaste tu contraseña?
                    </Text>
                 </TouchableOpacity>
-              </Link>
             </View>
 
             {/* Main Actions */}
             <View style={styles.actions}>
-              <View style={styles.buttonGroup}>
-                <TouchableOpacity
-                  style={[styles.loginButton, { backgroundColor: primaryColor }]}
-                  onPress={handleLogin}
-                >
-                  <Text style={styles.loginButtonText}>Log In</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.faceIdButton}>
-                  <MaterialIcons name="face" size={28} color={primaryColor} />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[styles.loginButton, { backgroundColor: primaryColor }]}
+                onPress={handleLogin}
+              >
+                <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -141,7 +143,7 @@ export default function LoginScreen() {
             <View style={styles.dividerContainer}>
               <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
               <Text style={[styles.dividerText, { color: useThemeColor({}, 'textSecondary') }]}>
-                Or continue with
+                O continuar con
               </Text>
               <View style={[styles.divider, { backgroundColor: useThemeColor({}, 'textSecondary') }]} />
             </View>
@@ -161,17 +163,16 @@ export default function LoginScreen() {
         </ScrollView>
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
-            Don't have an account?{' '}
-          </Text>
-          <Link href="/(auth)/register" asChild>
-            <TouchableOpacity>
-               <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Sign Up</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.footerText, { color: useThemeColor({}, 'textSecondary') }]}>
+              ¿No tienes una cuenta?{' '}
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+               <Text style={{ color: primaryColor, fontWeight: 'bold' }}>Regístrate</Text>
             </TouchableOpacity>
-          </Link>
+          </View>
         </View>
       </ThemedView>
-    </KeyboardAvoidingView>
   );
 }
 
@@ -179,47 +180,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fcfa',
-    paddingHorizontal: 24,
-    paddingTop: 40,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 24,
+    zIndex: 10,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  spacer: {
+    width: 40,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
-  header: {
+  logoArea: {
     alignItems: 'center',
     marginBottom: 32,
+    marginTop: 8,
   },
   logoContainer: {
-    marginBottom: 24,
-    position: 'relative',
-  },
-  logoWrapper: {
-    width: 80,
-    height: 80,
+    width: 64,
+    height: 64,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    transform: [{ rotate: '3deg' }],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  decorationDot: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FBBF24',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#f8fcfa',
+    marginBottom: 16,
   },
   title: {
     fontSize: 24,
@@ -286,14 +282,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'right',
-    marginTop: 8,
+    marginTop: 16,
   },
   actions: {
     marginTop: 24,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    gap: 12,
   },
   loginButton: {
     flex: 1,
@@ -312,21 +304,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  faceIdButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   socialSection: {
     width: '100%',
@@ -371,13 +348,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 24,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
   },
   footerText: {
     fontSize: 14,

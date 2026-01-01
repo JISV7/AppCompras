@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getListDetails, addListItem, deleteListItem, updateListItem, completeShoppingList, updateList, ShoppingList, ListItem } from '@/services/lists';
 import { getProduct, getLatestExchangeRate, getStores, searchStores, getNearbyStores } from '@/services/api';
 import { normalizeToGtin13 } from '@/services/validate';
@@ -29,6 +30,7 @@ interface Store {
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
 
   // Colors
   const bgColor = useThemeColor({}, 'background');
@@ -318,7 +320,8 @@ export default function ListDetailScreen() {
           data={items}
           renderItem={renderItem}
           keyExtractor={(item) => item.item_id}
-          contentContainerStyle={{ padding: 15, paddingBottom: 100 }}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 15, paddingBottom: 120 + insets.bottom }}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', marginTop: 50 }}>
               <FontAwesome5 name="clipboard-list" size={50} color="#ddd" />
@@ -357,7 +360,7 @@ export default function ListDetailScreen() {
 
       {list?.status === 'COMPLETED' && (
           <TouchableOpacity 
-            style={[styles.fab, { backgroundColor: '#FF9800', width: 'auto', paddingHorizontal: 20, borderRadius: 30 }]}
+            style={[styles.fab, { backgroundColor: '#FF9800', width: 'auto', paddingHorizontal: 24, borderRadius: 30, bottom: 30 }]}
             onPress={handleReopenList}
           >
             <Text style={{color: 'white', fontWeight: 'bold'}}>Reopen List</Text>
@@ -390,8 +393,9 @@ export default function ListDetailScreen() {
         transparent
         animationType="fade"
         onRequestClose={() => setShowCompleteModal(false)}
+        statusBarTranslucent
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowCompleteModal(false)}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={() => setShowCompleteModal(false)}>
           <Pressable style={[styles.completeModalContent, { backgroundColor: cardColor }]} onPress={(e) => e.stopPropagation()}>
             <Text style={[styles.completeModalTitle, { color: textColor }]}>Complete List</Text>
             <Text style={[styles.completeModalSubtitle, { color: subTextColor }]}>
@@ -509,16 +513,16 @@ const styles = StyleSheet.create({
   itemName: { fontWeight: '600', fontSize: 16, marginBottom: 4 },
   qtyBadge: { backgroundColor: '#E3F2FD', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
 
-  fab: { position: 'absolute', bottom: 90, right: 30, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5, zIndex: 10 },
+  fab: { position: 'absolute', bottom: 60, right: 30, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5, zIndex: 10 },
 
-  actionMenu: { position: 'absolute', bottom: 100, right: 30, gap: 15, alignItems: 'flex-end', zIndex: 10 },
+  actionMenu: { position: 'absolute', bottom: 130, right: 30, gap: 12, alignItems: 'flex-end', zIndex: 10 },
   actionBtn: { flexDirection: 'row', backgroundColor: '#455A64', padding: 12, borderRadius: 25, alignItems: 'center', gap: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 },
   actionText: { color: 'white', fontWeight: 'bold' },
 
   // Complete List Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },

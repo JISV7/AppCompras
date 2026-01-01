@@ -29,10 +29,11 @@ export function AddProductModal({ visible, onClose, onSubmit }: AddProductModalP
             transparent
             animationType="fade"
             onRequestClose={onClose}
+            statusBarTranslucent
         >
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.overlay}
+                style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}
             >
                 <View style={[styles.modalContainer, { backgroundColor: bgColor }]}>
                     <Text style={[styles.title, { color: textColor }]}>Enter Barcode</Text>

@@ -59,8 +59,8 @@ export function ListSelectorModal({ visible, onClose, onSelect }: ListSelectorMo
     );
 
     return (
-        <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-            <Pressable style={styles.overlay} onPress={onClose}>
+        <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose} statusBarTranslucent>
+            <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
                 <View style={[styles.content, { backgroundColor: bgColor }]}>
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: textColor }]}>Agregar a la lista...</Text>
@@ -96,7 +96,7 @@ export function ListSelectorModal({ visible, onClose, onSelect }: ListSelectorMo
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
     content: { borderRadius: 24, maxHeight: '60%', padding: 20, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     title: { fontSize: 18, fontWeight: 'bold' },
