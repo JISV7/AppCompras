@@ -16,7 +16,7 @@ class ShoppingList(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.user_id"))
     name: Mapped[str] = mapped_column(String(100))
-    budget_limit: Mapped[float | None] = mapped_column(DECIMAL(10, 2))
+    budget_limit: Mapped[float | None] = mapped_column(DECIMAL(18, 8))
     currency: Mapped[str] = mapped_column(String(5), default="USD")
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
     created_at: Mapped[datetime.datetime] = mapped_column(
@@ -43,7 +43,7 @@ class ListItem(Base):
     )
     product_barcode: Mapped[str] = mapped_column(ForeignKey("products.barcode"))
     quantity: Mapped[int] = mapped_column(Integer, default=1)
-    planned_price: Mapped[float | None] = mapped_column(DECIMAL(10, 2))
+    planned_price: Mapped[float | None] = mapped_column(DECIMAL(18, 8))
     is_purchased: Mapped[bool] = mapped_column(Boolean, default=False)
     added_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()

@@ -175,7 +175,7 @@ export default function HomeScreen() {
     
     try {
       await addListItem(listId, selectedProductForList.barcode, 1);
-      Alert.alert("Éxito", `${selectedProductForList.name} agregado a la lista.`);
+      // Alert.alert("Éxito", `${selectedProductForList.name} agregado a la lista.`);
       setListSelectorVisible(false);
       setSelectedProductForList(null);
     } catch (e) {

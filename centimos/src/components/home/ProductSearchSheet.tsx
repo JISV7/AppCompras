@@ -59,8 +59,9 @@ export function ProductSearchSheet({ visible, query, onClose, onProductSelect }:
 
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-            <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
-                <Pressable style={[styles.sheet, { backgroundColor: sheetColor }]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.overlay}>
+                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+                <View style={[styles.sheet, { backgroundColor: sheetColor }]}>
                     <View style={styles.handle} />
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: textColor }]}>Resultados de búsqueda</Text>
@@ -77,6 +78,8 @@ export function ProductSearchSheet({ visible, query, onClose, onProductSelect }:
                             renderItem={renderItem}
                             keyExtractor={(item) => item.barcode}
                             contentContainerStyle={styles.listContent}
+                            nestedScrollEnabled={true}
+                            overScrollMode="never"
                             ListEmptyComponent={
                                 <View style={styles.empty}>
                                     <FontAwesome5 name="search" size={40} color={subTextColor} />
@@ -85,8 +88,8 @@ export function ProductSearchSheet({ visible, query, onClose, onProductSelect }:
                             }
                         />
                     )}
-                </Pressable>
-            </Pressable>
+                </View>
+            </View>
         </Modal>
     );
 }

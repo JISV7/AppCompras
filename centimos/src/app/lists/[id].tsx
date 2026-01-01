@@ -86,7 +86,7 @@ export default function ListDetailScreen() {
 
     } catch (error) {
       console.error("Error fetching data:", error);
-      Alert.alert("Error", "Could not load data");
+      Alert.alert("Error", "No se pudieron cargar los datos");
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export default function ListDetailScreen() {
 
           return {
             ...item,
-            productName: product?.name || "Unknown Product",
+            productName: product?.name || "Producto Desconocido",
             productImage: product?.image_url,
             estimatedPrice: avgPrice,
             predictedPrice: predPrice,
@@ -114,12 +114,31 @@ export default function ListDetailScreen() {
             store_id: item.store_id,
           };
         } catch {
-          return { ...item, productName: "Product not found", estimatedPrice: 0, predictedPrice: 0 };
+          return { ...item, productName: "Producto no encontrado", estimatedPrice: 0, predictedPrice: 0 };
         }
       })
     );
-    setItems(enrichedItems);
-    calculateTotal(enrichedItems);
+
+    // Sorting Logic
+    const sortedItems = enrichedItems.sort((a, b) => {
+      // 1. Purchased status (false first)
+      if (a.is_purchased !== b.is_purchased) {
+        return a.is_purchased ? 1 : -1;
+      }
+
+      // 2. If both are NOT purchased, sort by added_at DESC
+      if (!a.is_purchased) {
+        const dateA = new Date(a.added_at || 0).getTime();
+        const dateB = new Date(b.added_at || 0).getTime();
+        return dateB - dateA;
+      }
+
+      // 3. If both are purchased, sort by productName ASC
+      return (a.productName || "").localeCompare(b.productName || "");
+    });
+
+    setItems(sortedItems);
+    calculateTotal(sortedItems);
   };
 
   const calculateTotal = (currentItems: EnrichedListItem[]) => {
@@ -132,7 +151,7 @@ export default function ListDetailScreen() {
 
   const handleBarcodeScanned = async ({ data }: { data: string }) => {
     if (list?.status === 'COMPLETED') {
-       Alert.alert("List Completed", "Cannot add items to a completed list.");
+       Alert.alert("Lista Finalizada", "No se pueden agregar artículos a una lista finalizada.");
        return;
     }
     setIsScanning(false);
@@ -141,13 +160,13 @@ export default function ListDetailScreen() {
     try {
       const normalizedBarcode = normalizeToGtin13(data);
       await addListItem(id, normalizedBarcode, 1);
-      Alert.alert("Added", `Product ${data} added!`);
+      // Alert.alert("Agregado", `¡Producto ${data} agregado!`);
       fetchData();
     } catch (error: any) {
       if (error.response?.status === 404) {
-        Alert.alert("Unknown Product", "Please create this product in the Home tab first.");
+        Alert.alert("Producto Desconocido", "Por favor crea este producto en la pestaña de Inicio primero.");
       } else {
-        Alert.alert("Error", "Could not add item.");
+        Alert.alert("Error", "No se pudo agregar el artículo.");
       }
     }
   };
@@ -166,7 +185,7 @@ export default function ListDetailScreen() {
     } catch (e) {
       setItems(originalItems);
       calculateTotal(originalItems);
-      Alert.alert("Error", "Could not delete item");
+      Alert.alert("Error", "No se pudo eliminar el artículo");
     }
   };
 
@@ -213,19 +232,19 @@ export default function ListDetailScreen() {
 
   const handleConfirmCompleteList = async () => {
     if (!selectedStoreForCompletion) {
-      Alert.alert("No Store Selected", "Please select a store to complete the list.");
+      Alert.alert("Tienda no seleccionada", "Por favor selecciona una tienda para finalizar la lista.");
       return;
     }
 
     setCompletingList(true);
     try {
       await completeShoppingList(id, selectedStoreForCompletion);
-      Alert.alert("Success", "List completed and prices logged!");
+      Alert.alert("Éxito", "¡Lista finalizada y precios registrados!");
       setShowCompleteModal(false);
       fetchData(); // Re-fetch data to update status and items
     } catch (error) {
       console.error("Error completing list:", error);
-      Alert.alert("Error", "Could not complete list.");
+      Alert.alert("Error", "No se pudo finalizar la lista.");
     } finally {
       setCompletingList(false);
     }
@@ -263,51 +282,73 @@ export default function ListDetailScreen() {
       setItems(originalItems); // Revert on error
       calculateTotal(originalItems);
       setSelectedItem(itemToUpdate);
-      Alert.alert("Error", "Could not update item.");
+      Alert.alert("Error", "No se pudo actualizar el artículo.");
     }
   };
 
   const handleReopenList = async () => {
     try {
       await updateList(id, { status: 'ACTIVE' });
-      Alert.alert("Success", "List Reopened!");
+      Alert.alert("Éxito", "¡Lista Reabierta!");
       fetchData();
     } catch (error) {
-      Alert.alert("Error", "Could not reopen list.");
+      Alert.alert("Error", "No se pudo reabrir la lista.");
     }
   };
   
-  const renderItem = ({ item }: { item: EnrichedListItem }) => (
-    <SwipeableRow onDelete={() => handleRemoveItem(item.item_id)} height={80} bottomMargin={10}>
-      <TouchableOpacity
-        style={[styles.itemCard, { backgroundColor: cardColor }]}
-        onPress={() => setSelectedItem(item)}
-        activeOpacity={0.9}
-      >
-        <View style={styles.itemImagePlaceholder}>
-          {item.productImage ? (
-            <Image source={{ uri: item.productImage }} style={styles.itemImage} />
-          ) : (
-            <FontAwesome5 name="box" size={20} color="#ccc" />
-          )}
-        </View>
-        <View style={{ flex: 1, paddingHorizontal: 10 }}>
-          <Text style={[styles.itemName, { color: textColor }]}>{item.productName}</Text>
-          <Text style={{ color: '#888', fontSize: 12 }}>{item.product_barcode}</Text>
-        </View>
-        <View style={styles.qtyBadge}>
-          <Text style={{ fontWeight: 'bold', color: primaryColor }}>x{item.quantity}</Text>
-        </View>
-      </TouchableOpacity>
-    </SwipeableRow>
-  );
+  const renderItem = ({ item }: { item: EnrichedListItem }) => {
+    const itemPrice = item.planned_price ?? item.estimatedPrice ?? 0;
+    
+    return (
+      <SwipeableRow onDelete={() => handleRemoveItem(item.item_id)} height={80} bottomMargin={10}>
+        <TouchableOpacity
+          style={[styles.itemCard, { backgroundColor: cardColor, opacity: item.is_purchased ? 0.6 : 1 }]}
+          onPress={() => setSelectedItem(item)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.itemImagePlaceholder}>
+            {item.productImage ? (
+              <Image source={{ uri: item.productImage }} style={styles.itemImage} />
+            ) : (
+              <FontAwesome5 name="box" size={20} color="#ccc" />
+            )}
+          </View>
+          <View style={{ flex: 1, paddingHorizontal: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text 
+                style={[
+                  styles.itemName, 
+                  { color: textColor, textDecorationLine: item.is_purchased ? 'line-through' : 'none' }
+                ]}
+                numberOfLines={1}
+              >
+                {item.productName}
+              </Text>
+              {item.is_purchased && (
+                <MaterialIcons name="check-circle" size={16} color={primaryColor} />
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: '#888', fontSize: 12 }}>{item.product_barcode}</Text>
+              <Text style={{ color: primaryColor, fontWeight: 'bold', fontSize: 14 }}>
+                ${itemPrice.toFixed(2)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.qtyBadge}>
+            <Text style={{ fontWeight: 'bold', color: primaryColor }}>x{item.quantity}</Text>
+          </View>
+        </TouchableOpacity>
+      </SwipeableRow>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      <Stack.Screen options={{ title: list?.name || 'Loading...', headerBackTitle: 'Lists' }} />
+      <Stack.Screen options={{ title: list?.name || 'Cargando...', headerBackTitle: 'Listas' }} />
 
       <View style={[styles.summary, { backgroundColor: cardColor }]}>
-        <Text style={{ color: '#888' }}>Estimated Total</Text>
+        <Text style={{ color: '#888' }}>Total Estimado</Text>
         <Text style={[styles.totalPrice, { color: (list?.budget_limit && totalPrice > list.budget_limit) ? 'red' : primaryColor }]}>
           {list?.currency || "$"} {totalPrice.toFixed(2)}
         </Text>
@@ -325,7 +366,7 @@ export default function ListDetailScreen() {
           ListEmptyComponent={
             <View style={{ alignItems: 'center', marginTop: 50 }}>
               <FontAwesome5 name="clipboard-list" size={50} color="#ddd" />
-              <Text style={{ color: '#888', marginTop: 10 }}>List is empty</Text>
+              <Text style={{ color: '#888', marginTop: 10 }}>La lista está vacía</Text>
             </View>
           }
         />
@@ -335,20 +376,20 @@ export default function ListDetailScreen() {
         <View style={styles.actionMenu}>
           <TouchableOpacity style={styles.actionBtn} onPress={handleCompleteListPress}>
             <MaterialIcons name="done-all" size={24} color="white" />
-            <Text style={styles.actionText}>Complete List</Text>
+            <Text style={styles.actionText}>Finalizar la Lista</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleManualAdd}>
             <Ionicons name="keypad" size={24} color="white" />
-            <Text style={styles.actionText}>Type Code</Text>
+            <Text style={styles.actionText}>Escribir Código</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => { setShowActions(false); setIsScanning(true); }}>
             <Ionicons name="scan" size={24} color="white" />
-            <Text style={styles.actionText}>Scan</Text>
+            <Text style={styles.actionText}>Escanear</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {list?.status !== 'COMPLETED' && (
+      {list?.status !== 'COMPLETED' && !selectedItem && (
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: primaryColor, transform: [{ rotate: showActions ? '45deg' : '0deg' }] }]}
         onPress={() => setShowActions(!showActions)}
@@ -360,10 +401,10 @@ export default function ListDetailScreen() {
 
       {list?.status === 'COMPLETED' && (
           <TouchableOpacity 
-            style={[styles.fab, { backgroundColor: '#FF9800', width: 'auto', paddingHorizontal: 24, borderRadius: 30, bottom: 30 }]}
+            style={[styles.fab, { backgroundColor: '#FF9800', width: 'auto', paddingHorizontal: 24, borderRadius: 30, bottom: 60 }]}
             onPress={handleReopenList}
           >
-            <Text style={{color: 'white', fontWeight: 'bold'}}>Reopen List</Text>
+            <Text style={{color: 'white', fontWeight: 'bold'}}>Reabrir Lista</Text>
           </TouchableOpacity>
       )}
 
@@ -385,6 +426,7 @@ export default function ListDetailScreen() {
         onClose={() => setSelectedItem(null)}
         onUpdateItem={handleUpdateItem}
         priceLocked={list?.status === 'COMPLETED'}
+        exchangeRate={exchangeRate}
       />
 
       {/* Complete List Modal */}
@@ -397,21 +439,21 @@ export default function ListDetailScreen() {
       >
         <Pressable style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={() => setShowCompleteModal(false)}>
           <Pressable style={[styles.completeModalContent, { backgroundColor: cardColor }]} onPress={(e) => e.stopPropagation()}>
-            <Text style={[styles.completeModalTitle, { color: textColor }]}>Complete List</Text>
+            <Text style={[styles.completeModalTitle, { color: textColor }]}>Finalizar Lista</Text>
             <Text style={[styles.completeModalSubtitle, { color: subTextColor }]}>
-              Mark all unpurchased items as purchased and log their prices.
+              Marcar todos los artículos no comprados como comprados y registrar sus precios.
             </Text>
 
             {/* Store Selection */}
             <View style={styles.storeSelectContainer}>
-                <Text style={[styles.storeSelectLabel, { color: textColor }]}>Purchased from:</Text>
+                <Text style={[styles.storeSelectLabel, { color: textColor }]}>Comprado en:</Text>
                 
                 {/* Search Bar */}
                 <View style={[styles.modalSearchBar, { backgroundColor: bgColor }]}>
                     <Ionicons name="search" size={18} color={subTextColor} />
                     <TextInput
                         style={[styles.modalSearchInput, { color: textColor }]}
-                        placeholder="Search store name/address..."
+                        placeholder="Buscar nombre/dirección de tienda..."
                         placeholderTextColor="#999"
                         value={storeSearchQuery}
                         onChangeText={handleStoreSearch}
@@ -438,7 +480,7 @@ export default function ListDetailScreen() {
                         <Text style={{ color: textColor, fontWeight: 'bold', marginLeft: 8 }}>
                             {nearbyStores.find(s => s.store_id === selectedStoreForCompletion)?.name || 
                              storeSearchResults.find(s => s.store_id === selectedStoreForCompletion)?.name || 
-                             "Selected Store"}
+                             "Tienda Seleccionada"}
                         </Text>
                     </View>
                 ) : null}
@@ -449,7 +491,7 @@ export default function ListDetailScreen() {
                     onPress={() => setIsNearbyExpanded(!isNearbyExpanded)}
                 >
                     <Text style={{ color: primaryColor, fontWeight: 'bold' }}>
-                        {isNearbyExpanded ? "Hide Nearby" : "Show Nearby Stores"}
+                        {isNearbyExpanded ? "Ocultar Cercanas" : "Mostrar Tiendas Cercanas"}
                     </Text>
                     <Ionicons name={isNearbyExpanded ? "chevron-up" : "chevron-down"} size={16} color={primaryColor} />
                 </TouchableOpacity>
@@ -468,12 +510,12 @@ export default function ListDetailScreen() {
                                 >
                                     <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
                                     <Text style={styles.searchResultAddress} numberOfLines={1}>
-                                        {store.address || "No address provided"}
+                                        {store.address || "Dirección no disponible"}
                                     </Text>
                                 </TouchableOpacity>
                             ))
                         ) : (
-                            <Text style={{ color: subTextColor, textAlign: 'center', fontSize: 12 }}>No stores found nearby.</Text>
+                            <Text style={{ color: subTextColor, textAlign: 'center', fontSize: 12 }}>No se encontraron tiendas cercanas.</Text>
                         )}
                     </View>
                 )}
@@ -484,7 +526,7 @@ export default function ListDetailScreen() {
               onPress={handleConfirmCompleteList}
               disabled={completingList || !selectedStoreForCompletion}
             >
-              {completingList ? <ActivityIndicator color="white" /> : <Text style={styles.completeButtonText}>Confirm Completion</Text>}
+              {completingList ? <ActivityIndicator color="white" /> : <Text style={styles.completeButtonText}>Confirmar Finalización</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -492,7 +534,7 @@ export default function ListDetailScreen() {
               onPress={() => setShowCompleteModal(false)}
               disabled={completingList}
             >
-              <Text style={[styles.cancelCompleteButtonText, { color: subTextColor }]}>Cancel</Text>
+              <Text style={[styles.cancelCompleteButtonText, { color: subTextColor }]}>Cancelar</Text>
             </TouchableOpacity>
 
           </Pressable>

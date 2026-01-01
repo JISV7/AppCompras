@@ -26,9 +26,10 @@ interface ListItemSheetProps {
     onClose: () => void;
     onUpdateItem?: (updatedFields: { quantity?: number; planned_price?: number | null; is_purchased?: boolean; store_id?: string | null }) => void;
     priceLocked?: boolean;
+    exchangeRate?: number | null;
 }
 
-export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocked = false }: ListItemSheetProps) {
+export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocked = false, exchangeRate = null }: ListItemSheetProps) {
     const insets = useSafeAreaInsets();
     const sheetColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'textMain');
@@ -41,6 +42,9 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
     const [isEditingPrice, setIsEditingPrice] = useState(false);
     const [priceValue, setPriceValue] = useState('');
 
+    const [isEditingPriceBs, setIsEditingPriceBs] = useState(false);
+    const [priceBsValue, setPriceBsValue] = useState('');
+
     const [isPurchasedState, setIsPurchasedState] = useState(item?.is_purchased || false);
     const [selectedStoreId, setSelectedStoreId] = useState(item?.store_id || null);
     const [storeSelectorVisible, setStoreSelectorVisible] = useState(false);
@@ -51,12 +55,22 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
         if (visible) {
             setIsEditingQty(false);
             setIsEditingPrice(false);
+            setIsEditingPriceBs(false);
             setQtyValue('');
-            setPriceValue('');
+            
+            const currentPrice = item?.planned_price ?? item?.estimatedPrice ?? 0;
+            setPriceValue(currentPrice.toString());
+            
+            if (exchangeRate) {
+                setPriceBsValue((currentPrice * exchangeRate).toFixed(2));
+            } else {
+                setPriceBsValue('0.00');
+            }
+
             setIsPurchasedState(item?.is_purchased || false);
             setSelectedStoreId(item?.store_id || null);
         }
-    }, [visible, item]);
+    }, [visible, item, exchangeRate]);
 
     if (!item) return null;
 
@@ -123,9 +137,56 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
         }
         if (onUpdateItem) {
             saveLock.current = false;
-            const currentPrice = item.planned_price ?? item.estimatedPrice ?? 0;
-            setPriceValue(currentPrice.toString());
             setIsEditingPrice(true);
+        }
+    };
+
+    const handlePriceBsPress = () => {
+        if (priceLocked) {
+            Alert.alert("Precio Bloqueado", "La lista está completada. Reabre la lista para editar el precio.");
+            return;
+        }
+        if (isPurchasedState) {
+            Alert.alert("Item Comprado", "Desmarca como comprado para editar el precio.");
+            return;
+        }
+        if (onUpdateItem) {
+            saveLock.current = false;
+            setIsEditingPriceBs(true);
+        }
+    };
+
+    const handlePriceChange = (text: string) => {
+        if (text === '') {
+            setPriceValue('');
+            setPriceBsValue('');
+            return;
+        }
+
+        if (!/^\d*\.?\d*$/.test(text)) return;
+
+        setPriceValue(text);
+
+        const usd = parseFloat(text);
+        if (!isNaN(usd) && exchangeRate) {
+            setPriceBsValue((usd * exchangeRate).toFixed(2));
+        }
+    };
+
+    const handlePriceBsChange = (text: string) => {
+        if (text === '') {
+            setPriceBsValue('');
+            setPriceValue('');
+            return;
+        }
+
+        if (!/^\d*\.?\d*$/.test(text)) return;
+
+        setPriceBsValue(text);
+
+        const bs = parseFloat(text);
+        if (!isNaN(bs) && exchangeRate && exchangeRate !== 0) {
+            setPriceValue((bs / exchangeRate).toFixed(6));
         }
     };
 
@@ -136,19 +197,23 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
              saveLock.current = true;
              onUpdateItem?.({ planned_price: null });
              setIsEditingPrice(false);
+             setIsEditingPriceBs(false);
              return;
         }
 
         const price = parseFloat(priceValue);
         if (!isNaN(price) && price >= 0) {
-            if (price !== item.planned_price) {
+            const originalPrice = item.planned_price ?? item.estimatedPrice ?? 0;
+            if (Math.abs(price - originalPrice) > 0.009) { 
                 saveLock.current = true;
                 onUpdateItem?.({ planned_price: price });
             }
             setIsEditingPrice(false);
+            setIsEditingPriceBs(false);
         } else {
             Alert.alert("Precio Inválido", "Debe ser 0 o mayor");
             setIsEditingPrice(false);
+            setIsEditingPriceBs(false);
         }
     };
 
@@ -165,9 +230,11 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlayWrapper}>
-                <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
-                    <Pressable style={[styles.sheet, { backgroundColor: sheetColor, paddingBottom: insets.bottom + 20 }]} onPress={(e) => e.stopPropagation()}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.overlayWrapper}>
+                <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+                    <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+                    
+                    <View style={[styles.sheet, { backgroundColor: sheetColor, paddingBottom: insets.bottom + 20 }]}>
 
                         <View style={styles.handle} />
 
@@ -178,8 +245,12 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                            {/* Product Info */}
+                        <ScrollView 
+                            showsVerticalScrollIndicator={false} 
+                            contentContainerStyle={styles.scrollContent}
+                            nestedScrollEnabled={true}
+                            overScrollMode="never"
+                        >
                             <View style={styles.productRow}>
                                 {item.productImage ? (
                                     <Image source={{ uri: item.productImage }} style={styles.image} />
@@ -194,76 +265,104 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                 </View>
                             </View>
 
-                            {/* Stats Grid */}
                             <View style={styles.grid}>
-                                {/* QTY BOX */}
-                                <TouchableOpacity
-                                    style={[styles.statBox, { backgroundColor: '#F5F5F5', borderColor: primaryColor, borderWidth: 1 }]}
-                                    onPress={handleQtyPress}
-                                    activeOpacity={0.8}
-                                >
-                                    <Text style={styles.statLabel}>Cant. (Toca)</Text>
-                                    {isEditingQty ? (
-                                        <TextInput
-                                            style={[styles.statValue, { color: textColor, minWidth: 40, textAlign: 'center', borderBottomWidth: 1, borderBottomColor: primaryColor }]}
-                                            value={qtyValue}
-                                            onChangeText={(text) => setQtyValue(text.replace(/[^0-9]/g, ''))}
-                                            keyboardType="numeric"
-                                            autoFocus
-                                            onSubmitEditing={handleSaveQty}
-                                            maxLength={2}
-                                            selectTextOnFocus
-                                        />
-                                    ) : (
-                                        <Text style={[styles.statValue, { color: textColor }]}>{item.quantity}</Text>
-                                    )}
-                                </TouchableOpacity>
+                                <View style={styles.gridRow}>
+                                    <TouchableOpacity
+                                        style={[styles.statBox, { backgroundColor: '#F5F5F5', borderColor: primaryColor, borderWidth: 1 }]}
+                                        onPress={handleQtyPress}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={styles.statLabel}>Cantidad (Toca)</Text>
+                                        {isEditingQty ? (
+                                            <TextInput
+                                                style={[styles.statValue, { color: textColor, minWidth: 40, textAlign: 'center', borderBottomWidth: 1, borderBottomColor: primaryColor }]}
+                                                value={qtyValue}
+                                                onChangeText={(text) => setQtyValue(text.replace(/[^0-9]/g, ''))}
+                                                keyboardType="numeric"
+                                                autoFocus
+                                                onSubmitEditing={handleSaveQty}
+                                                maxLength={2}
+                                                selectTextOnFocus
+                                            />
+                                        ) : (
+                                            <Text style={[styles.statValue, { color: textColor }]}>{item.quantity}</Text>
+                                        )}
+                                    </TouchableOpacity>
 
-                                {/* PRICE BOX - EDITABLE */}
-                                <TouchableOpacity
-                                    style={[styles.statBox, { backgroundColor: '#E3F2FD', borderColor: primaryColor, borderWidth: 1 }]}
-                                    onPress={handlePricePress}
-                                    activeOpacity={0.8}
-                                >
-                                    <Text style={styles.statLabel}>Precio ($)</Text>
-                                    {isEditingPrice ? (
-                                        <TextInput
-                                            style={[styles.statValue, { color: primaryColor, minWidth: 60, textAlign: 'center', borderBottomWidth: 1, borderBottomColor: primaryColor }]}
-                                            value={priceValue}
-                                            onChangeText={setPriceValue}
-                                            keyboardType="decimal-pad"
-                                            autoFocus
-                                            onSubmitEditing={handleSavePrice}
-                                            selectTextOnFocus
-                                        />
-                                    ) : (
-                                        <View>
-                                            <Text style={[styles.statValue, { color: primaryColor }]}>
-                                                ${(item.planned_price ?? item.estimatedPrice ?? 0).toFixed(2)}
-                                            </Text>
-                                            {item.planned_price !== undefined && item.planned_price !== null && (
-                                                <Text style={{ fontSize: 10, color: '#666', textAlign: 'center' }}>(Editado)</Text>
-                                            )}
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
+                                    <View style={[styles.statBox, { backgroundColor: '#E8F5E9' }]}>
+                                        <Text style={styles.statLabel}>Predictivo</Text>
+                                        <Text style={[styles.statValue, { color: '#2E7D32' }]}>
+                                            ${item.predictedPrice ? item.predictedPrice.toFixed(2) : '-'}
+                                        </Text>
+                                    </View>
+                                </View>
 
-                                {/* PREDICTIVE BOX */}
-                                <View style={[styles.statBox, { backgroundColor: '#E8F5E9' }]}>
-                                    <Text style={styles.statLabel}>Predictivo</Text>
-                                    <Text style={[styles.statValue, { color: '#2E7D32' }]}>
-                                        ${item.predictedPrice ? item.predictedPrice.toFixed(2) : '-'}
-                                    </Text>
+                                <View style={styles.gridRow}>
+                                    <TouchableOpacity
+                                        style={[styles.statBox, { backgroundColor: '#E3F2FD', borderColor: primaryColor, borderWidth: 1 }]}
+                                        onPress={handlePricePress}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={styles.statLabel}>Precio ($)</Text>
+                                        {isEditingPrice ? (
+                                            <TextInput
+                                                style={[styles.statValue, { color: primaryColor, minWidth: 60, textAlign: 'center', borderBottomWidth: 1, borderBottomColor: primaryColor }]}
+                                                value={priceValue}
+                                                onChangeText={handlePriceChange}
+                                                keyboardType="decimal-pad"
+                                                autoFocus
+                                                onBlur={handleSavePrice}
+                                                onSubmitEditing={handleSavePrice}
+                                                selectTextOnFocus
+                                            />
+                                        ) : (
+                                            <View>
+                                                <Text style={[styles.statValue, { color: primaryColor }]}>
+                                                    ${parseFloat(priceValue || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                                                </Text>
+                                                {item.planned_price !== undefined && item.planned_price !== null && (
+                                                    <Text style={{ fontSize: 10, color: '#666', textAlign: 'center' }}>(Editado)</Text>
+                                                )}
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.statBox, { backgroundColor: '#E3F2FD', borderColor: primaryColor, borderWidth: 1 }]}
+                                        onPress={handlePriceBsPress}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={styles.statLabel}>Precio (Bs)</Text>
+                                        {isEditingPriceBs ? (
+                                            <TextInput
+                                                style={[styles.statValue, { color: primaryColor, minWidth: 60, textAlign: 'center', borderBottomWidth: 1, borderBottomColor: primaryColor }]}
+                                                value={priceBsValue}
+                                                onChangeText={handlePriceBsChange}
+                                                keyboardType="decimal-pad"
+                                                autoFocus
+                                                onBlur={handleSavePrice}
+                                                onSubmitEditing={handleSavePrice}
+                                                selectTextOnFocus
+                                            />
+                                        ) : (
+                                            <View>
+                                                <Text style={[styles.statValue, { color: primaryColor }]}>
+                                                    Bs{parseFloat(priceBsValue || '0').toFixed(2)}
+                                                </Text>
+                                                {item.planned_price !== undefined && item.planned_price !== null && (
+                                                    <Text style={{ fontSize: 10, color: '#666', textAlign: 'center' }}>(Editado)</Text>
+                                                )}
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
                                 </View>
                             </View>
 
-                            {/* Added At Info */}
                             <View style={[styles.detailRow, { borderBottomColor: '#eee', borderBottomWidth: 1 }]}>
                                 <Text style={{ color: subTextColor }}>Agregado el</Text>
                                 <Text style={{ color: textColor, fontWeight: '500' }}>{formatDate(item.added_at)}</Text>
                             </View>
 
-                            {/* Is Purchased Toggle */}
                             <View style={[styles.detailRow, { borderBottomColor: '#eee', borderBottomWidth: 1 }]}>
                                 <Text style={{ color: subTextColor }}>¿Comprado?</Text>
                                 <Switch
@@ -271,11 +370,9 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                     value={isPurchasedState}
                                     trackColor={{ false: '#767577', true: primaryColor }}
                                     thumbColor={isPurchasedState ? '#f4f3f4' : '#f4f3f4'}
-                                    disabled={false}
                                 />
                             </View>
 
-                            {/* Store Selection */}
                             <TouchableOpacity 
                                 style={styles.detailRow} 
                                 onPress={() => setStoreSelectorVisible(true)}
@@ -298,8 +395,8 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                             onClose={() => setStoreSelectorVisible(false)}
                             onSelect={handleSelectStore}
                         />
-                    </Pressable>
-                </Pressable>
+                    </View>
+                </View>
             </KeyboardAvoidingView>
         </Modal>
     );
@@ -308,7 +405,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 const styles = StyleSheet.create({
     overlayWrapper: { flex: 1 },
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 400 },
+    sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 400, maxHeight: '85%' },
     handle: { width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 10, alignSelf: 'center', marginBottom: 20 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
     title: { fontSize: 20, fontWeight: 'bold' },
@@ -319,7 +416,8 @@ const styles = StyleSheet.create({
     info: { flex: 1, marginLeft: 16, justifyContent: 'center' },
     productName: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
     barcode: { fontSize: 14, fontFamily: 'monospace' },
-    grid: { flexDirection: 'row', gap: 15, marginBottom: 25 },
+    grid: { gap: 15, marginBottom: 25 },
+    gridRow: { flexDirection: 'row', gap: 15 },
     statBox: { flex: 1, padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     statLabel: { fontSize: 12, color: '#666', marginBottom: 5 },
     statValue: { fontSize: 20, fontWeight: 'bold', lineHeight: 28 }, 

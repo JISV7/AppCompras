@@ -1,7 +1,6 @@
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable, Switch } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable } from 'react-native';
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { useRouter } from 'expo-router';
 
 interface UserProfile {
   full_name?: string;
@@ -23,15 +22,15 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
   const textColor = useThemeColor({}, 'textMain');
   const subTextColor = useThemeColor({}, 'textSecondary');
   const primaryColor = useThemeColor({}, 'primary');
-  
-  const router = useRouter();
 
   return (
     <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
+      <View style={styles.overlay}>
+        {/* Backdrop sibling to prevent gesture conflicts */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         
         {/* The Sheet */}
-        <Pressable style={[styles.sheet, { backgroundColor: sheetColor }]} onPress={(e) => e.stopPropagation()}>
+        <View style={[styles.sheet, { backgroundColor: sheetColor }]}>
           
           {/* Handle */}
           <View style={styles.handle} />
@@ -49,10 +48,10 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
             </View>
             <View style={styles.userInfo}>
               <Text style={[styles.userName, { color: textColor }]}>
-                {user?.full_name || user?.username || "User"}
+                {user?.full_name || user?.username || "Usuario"}
               </Text>
               <Text style={[styles.userEmail, { color: subTextColor }]}>
-                {user?.email || "No email"}
+                {user?.email || "Sin correo"}
               </Text>
             </View>
           </View>
@@ -67,7 +66,7 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
               <View style={[styles.iconBox, { backgroundColor: '#E3F2FD' }]}>
                 <FontAwesome5 name="user-cog" size={18} color="#1976D2" />
               </View>
-              <Text style={[styles.menuText, { color: textColor }]}>Account Settings</Text>
+              <Text style={[styles.menuText, { color: textColor }]}>Ajustes de Cuenta</Text>
               <Ionicons name="chevron-forward" size={20} color={subTextColor} />
             </TouchableOpacity>
 
@@ -76,7 +75,7 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
               <View style={[styles.iconBox, { backgroundColor: '#F3E5F5' }]}>
                 <Ionicons name="settings-sharp" size={20} color="#7B1FA2" />
               </View>
-              <Text style={[styles.menuText, { color: textColor }]}>App Preferences</Text>
+              <Text style={[styles.menuText, { color: textColor }]}>Preferencias de la App</Text>
               <Ionicons name="chevron-forward" size={20} color={subTextColor} />
             </TouchableOpacity>
 
@@ -85,7 +84,7 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
               <View style={[styles.iconBox, { backgroundColor: '#E0F2F1' }]}>
                 <FontAwesome5 name="question" size={18} color="#00796B" />
               </View>
-              <Text style={[styles.menuText, { color: textColor }]}>Help & Support</Text>
+              <Text style={[styles.menuText, { color: textColor }]}>Ayuda y Soporte</Text>
               <Ionicons name="chevron-forward" size={20} color={subTextColor} />
             </TouchableOpacity>
 
@@ -97,11 +96,11 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
             onPress={onLogout}
           >
             <MaterialIcons name="logout" size={20} color="#D32F2F" />
-            <Text style={[styles.logoutText, { color: '#D32F2F' }]}>Log Out</Text>
+            <Text style={[styles.logoutText, { color: '#D32F2F' }]}>Cerrar Sesión</Text>
           </TouchableOpacity>
 
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }

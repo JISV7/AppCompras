@@ -19,7 +19,7 @@ class PriceLog(Base):
     store_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stores.store_id"))
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.user_id"))
 
-    price: Mapped[float] = mapped_column(DECIMAL(10, 2))
+    price: Mapped[float] = mapped_column(DECIMAL(18, 8))
     currency: Mapped[str] = mapped_column(String(5), default="USD")
     recorded_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now()

@@ -24,7 +24,7 @@ export function ScannerAction({ onScanPress, searchQuery, onSearchChange, onSear
       >
         <View style={styles.visual}>
           <Ionicons name="scan-outline" size={60} color="white" />
-          <Text style={styles.text}>Tap to Scan Product</Text>
+          <Text style={styles.text}>Toca para escanear producto</Text>
         </View>
       </TouchableOpacity>
 
@@ -33,7 +33,7 @@ export function ScannerAction({ onScanPress, searchQuery, onSearchChange, onSear
         <Ionicons name="search" size={20} color={subTextColor} style={styles.searchIcon} />
         <TextInput
           style={[styles.input, { color: textColor }]}
-          placeholder="Or search by name/barcode..."
+          placeholder="O busca por nombre/código..."
           placeholderTextColor={subTextColor}
           value={searchQuery}
           onChangeText={onSearchChange}

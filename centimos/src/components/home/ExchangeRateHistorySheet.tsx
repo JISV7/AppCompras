@@ -63,8 +63,11 @@ export function ExchangeRateHistorySheet({ visible, onClose }: ExchangeRateHisto
 
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-            <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
-                <Pressable style={[styles.sheet, { backgroundColor: sheetColor }]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.overlay}>
+                {/* Backdrop: Sibling behind the sheet */}
+                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+                
+                <View style={[styles.sheet, { backgroundColor: sheetColor }]}>
                     <View style={styles.handle} />
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: textColor }]}>Tasa de Cambio Histórico</Text>
@@ -81,6 +84,8 @@ export function ExchangeRateHistorySheet({ visible, onClose }: ExchangeRateHisto
                             renderItem={renderItem}
                             keyExtractor={(item) => item.rate_id}
                             contentContainerStyle={styles.listContent}
+                            nestedScrollEnabled={true}
+                            overScrollMode="never"
                             ListEmptyComponent={
                                 <Text style={{ textAlign: 'center', color: subTextColor, marginTop: 50 }}>
                                     No hay datos históricos disponibles.
@@ -88,8 +93,8 @@ export function ExchangeRateHistorySheet({ visible, onClose }: ExchangeRateHisto
                             }
                         />
                     )}
-                </Pressable>
-            </Pressable>
+                </View>
+            </View>
         </Modal>
     );
 }

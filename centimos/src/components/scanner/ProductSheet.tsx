@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { StoreSelectorModal } from '../stores/StoreSelectorModal';
 import { reportPrice, Product } from '@/services/api';
+import * as Clipboard from 'expo-clipboard';
 
 interface ProductSheetProps {
   visible: boolean;
@@ -44,6 +45,12 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
     }
   }, [visible, mode]);
 
+  const handleCopy = async (text: string | null) => {
+    if (!text) return;
+    await Clipboard.setStringAsync(text);
+    Alert.alert("Copiado", "El código ha sido copiado al portapapeles.");
+  };
+
   const handleReportPrice = async () => {
     if (!product || !selectedStore || !price) {
       Alert.alert("Faltan datos", "Por favor ingresa el precio y selecciona una tienda.");
@@ -55,7 +62,7 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
       await reportPrice(product.barcode, selectedStore.store_id, parseFloat(price));
       Alert.alert("Éxito", "Precio reportado correctamente.");
       onClose();
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "No se pudo reportar el precio.");
     } finally {
       setIsSubmitting(false);
@@ -75,15 +82,20 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
         
         <View style={styles.info}>
           <Text style={[styles.productName, { color: textColor }]}>{product?.name}</Text>
-          <Text style={[styles.brand, { color: subTextColor }]}>{product?.brand || "Unknown Brand"}</Text>
-          <View style={styles.badge}>
-              <Text style={styles.badgeText}>{product?.data_source}</Text>
+          <Text style={[styles.brand, { color: subTextColor }]}>{product?.brand || "Marca desconocida"}</Text>
+          <View style={styles.badgeRow}>
+              <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{product?.data_source}</Text>
+              </View>
+              <TouchableOpacity onPress={() => handleCopy(product?.barcode || null)} style={styles.copyBadge}>
+                  <MaterialIcons name="content-copy" size={12} color={primaryColor} />
+                  <Text style={[styles.badgeText, { color: primaryColor }]}>{product?.barcode}</Text>
+              </TouchableOpacity>
           </View>
         </View>
       </View>
 
       <View style={styles.actionGrid}>
-          {/* We only show Add to List here to keep the modes distinct as requested */}
           <TouchableOpacity 
             style={[styles.bigButton, { backgroundColor: primaryColor, flex: 1 }]}
             onPress={() => product && onAddToList?.(product)}
@@ -99,7 +111,10 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
     <View style={styles.reportingContainer}>
       <View style={styles.miniProductRow}>
          <Text style={[styles.miniProductName, { color: textColor }]}>{product?.name}</Text>
-         <Text style={{ color: subTextColor, fontSize: 12 }}>{product?.barcode}</Text>
+         <TouchableOpacity onPress={() => handleCopy(product?.barcode || null)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={{ color: subTextColor, fontSize: 12 }}>{product?.barcode}</Text>
+            <MaterialIcons name="content-copy" size={12} color={subTextColor} />
+         </TouchableOpacity>
       </View>
 
       <Text style={[styles.label, { color: subTextColor }]}>Precio en tienda ($)</Text>
@@ -153,13 +168,14 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
       statusBarTranslucent
     >
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.overlayWrapper}
       >
-        <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
-          <Pressable 
+        <View style={styles.overlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          
+          <View 
             style={[styles.sheet, { backgroundColor: sheetColor, paddingBottom: insets.bottom + 20 }]} 
-            onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.handle} />
             
@@ -188,10 +204,13 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
                     </View>
                     <Text style={[styles.notFoundTitle, { color: textColor }]}>¡Nuevo Descubrimiento!</Text>
                     <Text style={[styles.notFoundText, { color: subTextColor }]}>No tenemos este producto en nuestra base de datos todavía.</Text>
-                    <View style={styles.barcodeBox}>
+                    
+                    <TouchableOpacity onPress={() => handleCopy(barcode)} style={styles.barcodeBox}>
                       <Ionicons name="barcode-outline" size={20} color={subTextColor} />
                       <Text style={{ color: subTextColor, fontFamily: 'monospace' }}> {barcode} </Text>
-                    </View>
+                      <MaterialIcons name="content-copy" size={14} color={subTextColor} />
+                    </TouchableOpacity>
+
                     <TouchableOpacity style={[styles.createButton, { backgroundColor: primaryColor }]}
                       onPress={() => {
                         onClose();
@@ -219,8 +238,8 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
                 setStoreSelectorVisible(false);
               }}
             />
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -242,7 +261,9 @@ const styles = StyleSheet.create({
   info: { flex: 1, marginLeft: 16, justifyContent: 'center' },
   productName: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
   brand: { fontSize: 14, marginBottom: 8 },
+  badgeRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   badge: { backgroundColor: '#E3F2FD', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  copyBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F5F5F5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   badgeText: { fontSize: 10, color: '#1565C0', fontWeight: 'bold' },
   actionGrid: { flexDirection: 'row', gap: 12, marginTop: 10 },
   bigButton: { flexDirection: 'row', height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 8 },
@@ -250,7 +271,7 @@ const styles = StyleSheet.create({
   unknownIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
   notFoundTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 5 },
   notFoundText: { textAlign: 'center', marginBottom: 20, paddingHorizontal: 20 },
-  barcodeBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 25 },
+  barcodeBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 25, gap: 8 },
   createButton: { width: '100%', height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   createButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   rescanButton: { alignItems: 'center', marginTop: 25, padding: 10 },

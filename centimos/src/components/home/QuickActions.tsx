@@ -64,6 +64,22 @@ export function QuickActions({ onLogPrice, onOpenConverter }: QuickActionsProps)
           <Text style={[styles.actionTitle, { color: textColor }]}>Agregar tienda</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={[styles.grid, { marginTop: 15 }]}>
+        {/* 5. Example Modal */}
+        <TouchableOpacity 
+          style={[styles.actionCard, { backgroundColor: cardColor }]}
+          onPress={() => router.push('/modal')}
+        >
+          <View style={[styles.actionIcon, { backgroundColor: '#E0F7FA' }]}>
+             <MaterialIcons name="info-outline" size={24} color="#00ACC1" />
+          </View>
+          <Text style={[styles.actionTitle, { color: textColor }]}>Ejemplo Modal</Text>
+        </TouchableOpacity>
+
+        {/* Empty space for balance */}
+        <View style={{ flex: 1 }} />
+      </View>
     </View>
   );
 }

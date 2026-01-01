@@ -16,13 +16,13 @@ export function ConverterSheet({ visible, rate, onClose }: ConverterSheetProps) 
     const primaryColor = useThemeColor({}, 'primary');
     const cardColor = useThemeColor({}, 'surfaceLight');
 
-    const [usd, setUsd] = useState('1');
-    const [ves, setVes] = useState(rate.toFixed(2));
+    const [usd, setUsd] = useState('1.000');
+    const [ves, setVes] = useState(rate.toFixed(3));
 
     useEffect(() => {
         if (visible) {
-            setUsd('1');
-            setVes(rate.toFixed(2));
+            setUsd('1.000');
+            setVes(rate.toFixed(3));
         }
     }, [visible, rate]);
 
@@ -30,7 +30,7 @@ export function ConverterSheet({ visible, rate, onClose }: ConverterSheetProps) 
         const cleanVal = val.replace(',', '.');
         setUsd(cleanVal);
         if (cleanVal && !isNaN(parseFloat(cleanVal))) {
-            setVes((parseFloat(cleanVal) * rate).toFixed(2));
+            setVes((parseFloat(cleanVal) * rate).toFixed(3));
         } else {
             setVes('');
         }
@@ -40,7 +40,7 @@ export function ConverterSheet({ visible, rate, onClose }: ConverterSheetProps) 
         const cleanVal = val.replace(',', '.');
         setVes(cleanVal);
         if (cleanVal && !isNaN(parseFloat(cleanVal))) {
-            setUsd((parseFloat(cleanVal) / rate).toFixed(2));
+            setUsd((parseFloat(cleanVal) / rate).toFixed(3));
         } else {
             setUsd('');
         }
@@ -63,7 +63,7 @@ export function ConverterSheet({ visible, rate, onClose }: ConverterSheetProps) 
 
                     <View style={styles.rateInfo}>
                         <Text style={{ color: subTextColor }}>Tasa aplicada: </Text>
-                        <Text style={{ color: primaryColor, fontWeight: 'bold' }}>{rate.toFixed(2)} Bs/$</Text>
+                        <Text style={{ color: primaryColor, fontWeight: 'bold' }}>{rate.toFixed(3)} Bs/$</Text>
                     </View>
 
                     <View style={styles.converterContainer}>
@@ -78,7 +78,7 @@ export function ConverterSheet({ visible, rate, onClose }: ConverterSheetProps) 
                                 value={usd}
                                 onChangeText={handleUsdChange}
                                 keyboardType="decimal-pad"
-                                placeholder="0.00"
+                                placeholder="0.000"
                                 placeholderTextColor="#999"
                                 selectTextOnFocus
                             />
@@ -99,7 +99,7 @@ export function ConverterSheet({ visible, rate, onClose }: ConverterSheetProps) 
                                 value={ves}
                                 onChangeText={handleVesChange}
                                 keyboardType="decimal-pad"
-                                placeholder="0.00"
+                                placeholder="0.000"
                                 placeholderTextColor="#999"
                                 selectTextOnFocus
                             />

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -24,6 +24,8 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const addressRef = useRef<TextInput>(null);
+
   useEffect(() => {
     if (visible) {
       setName('');
@@ -38,7 +40,7 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission to access location was denied');
+        Alert.alert('Permiso denegado', 'Se requiere acceso a la ubicación para crear una tienda.');
         setLoadingLocation(false);
         return;
       }
@@ -47,7 +49,7 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
       setLocation(location);
     } catch (error) {
       console.log('Error fetching location', error);
-      Alert.alert('Could not fetch location');
+      Alert.alert('Error', ' No se pudo obtener la ubicación.');
     } finally {
       setLoadingLocation(false);
     }
@@ -55,11 +57,11 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a store name');
+      Alert.alert('Error', 'Por favor ingresa el nombre de la tienda');
       return;
     }
     if (!location) {
-        Alert.alert('Error', 'Location is required to create a store. Please ensure GPS is enabled.');
+        Alert.alert('Error', 'La ubicación es obligatoria. Asegúrate de tener el GPS activado.');
         return;
     }
 
@@ -71,11 +73,11 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
         location.coords.latitude, 
         location.coords.longitude
       );
-      Alert.alert('Success', 'Store created successfully!');
+      Alert.alert('Éxito', '¡Tienda creada correctamente!');
       onStoreCreated();
       onClose();
     } catch (error) {
-      Alert.alert('Error', 'Failed to create store. It might already exist.');
+      Alert.alert('Error', 'No se pudo crear la tienda. Es posible que ya exista.');
     } finally {
       setSubmitting(false);
     }
@@ -83,71 +85,85 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-        <View style={[styles.modalContent, { backgroundColor: bgColor }]}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={styles.overlayWrapper}
+      >
+        <View style={styles.overlay}>
+          {/* Backdrop sibling to prevent gesture conflicts and fix transparent gaps */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
           
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: textColor }]}>Add New Store</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close-circle" size={28} color={subTextColor} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Location Status */}
-            <View style={[styles.locationBox, { backgroundColor: cardColor, borderColor: location ? primaryColor : '#ccc' }]}>
-                {loadingLocation ? (
-                    <View style={styles.row}>
-                        <ActivityIndicator color={primaryColor} size="small" />
-                        <Text style={{ marginLeft: 10, color: subTextColor }}>Getting GPS...</Text>
-                    </View>
-                ) : location ? (
-                    <View style={styles.row}>
-                        <Ionicons name="location" size={20} color={primaryColor} />
-                        <Text style={{ marginLeft: 10, color: textColor, fontWeight: '500' }}>
-                            {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}
-                        </Text>
-                    </View>
-                ) : (
-                    <TouchableOpacity style={styles.row} onPress={fetchLocation}>
-                        <Ionicons name="warning" size={20} color="orange" />
-                         <Text style={{ marginLeft: 10, color: 'orange' }}>Location not found. Tap to retry.</Text>
-                    </TouchableOpacity>
-                )}
+          <View style={[styles.modalContent, { backgroundColor: bgColor }]}>
+            <View style={styles.handle} />
+            
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: textColor }]}>Agregar Nueva Tienda</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close-circle" size={28} color={subTextColor} />
+              </TouchableOpacity>
             </View>
 
-            <Text style={[styles.label, { color: subTextColor }]}>Store Name</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: cardColor, color: textColor }]}
-              placeholder="e.g. Supermercado Vida"
-              placeholderTextColor="#999"
-              value={name}
-              onChangeText={setName}
-            />
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Location Status */}
+              <View style={[styles.locationBox, { backgroundColor: cardColor, borderColor: location ? primaryColor : '#ccc' }]}>
+                  {loadingLocation ? (
+                      <View style={styles.row}>
+                          <ActivityIndicator color={primaryColor} size="small" />
+                          <Text style={{ marginLeft: 10, color: subTextColor }}>Obteniendo GPS...</Text>
+                      </View>
+                  ) : location ? (
+                      <View style={styles.row}>
+                          <Ionicons name="location" size={20} color={primaryColor} />
+                          <Text style={{ marginLeft: 10, color: textColor, fontWeight: '500' }}>
+                              {location.coords.latitude.toFixed(5)}, {location.coords.longitude.toFixed(5)}
+                          </Text>
+                      </View>
+                  ) : (
+                      <TouchableOpacity style={styles.row} onPress={fetchLocation}>
+                          <Ionicons name="warning" size={20} color="orange" />
+                           <Text style={{ marginLeft: 10, color: 'orange' }}>Ubicación no encontrada. Toca para reintentar.</Text>
+                      </TouchableOpacity>
+                  )}
+              </View>
 
-            <Text style={[styles.label, { color: subTextColor }]}>Address / Reference (Optional)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: cardColor, color: textColor, height: 80 }]}
-              placeholder="e.g. Av. Bolivar, next to the bank"
-              placeholderTextColor="#999"
-              value={address}
-              onChangeText={setAddress}
-              multiline
-            />
+              <Text style={[styles.label, { color: subTextColor }]}>Nombre de la Tienda</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: cardColor, color: textColor }]}
+                placeholder="Ej. Supermercado Vida"
+                placeholderTextColor="#999"
+                value={name}
+                onChangeText={setName}
+                returnKeyType="next"
+                onSubmitEditing={() => addressRef.current?.focus()}
+                blurOnSubmit={false}
+              />
 
-            <TouchableOpacity
-              style={[styles.createButton, { backgroundColor: primaryColor, opacity: (submitting || !location) ? 0.6 : 1 }]}
-              onPress={handleCreate}
-              disabled={submitting || !location}
-            >
-              {submitting ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.createButtonText}>Create Store</Text>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
+              <Text style={[styles.label, { color: subTextColor }]}>Dirección / Referencia (Opcional)</Text>
+              <TextInput
+                ref={addressRef}
+                style={[styles.input, { backgroundColor: cardColor, color: textColor, height: 80 }]}
+                placeholder="Ej. Av. Bolivar, al lado del banco"
+                placeholderTextColor="#999"
+                value={address}
+                onChangeText={setAddress}
+                multiline
+                returnKeyType="done"
+                onSubmitEditing={handleCreate}
+              />
 
+              <TouchableOpacity
+                style={[styles.createButton, { backgroundColor: primaryColor, opacity: (submitting || !location) ? 0.6 : 1 }]}
+                onPress={handleCreate}
+                disabled={submitting || !location}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.createButtonText}>Crear Tienda</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -155,6 +171,7 @@ export function CreateStoreModal({ visible, onClose, onStoreCreated }: CreateSto
 }
 
 const styles = StyleSheet.create({
+  overlayWrapper: { flex: 1 },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
@@ -164,12 +181,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    height: '70%',
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '90%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 10,
+  },
+  handle: { 
+    width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 10, alignSelf: 'center', marginBottom: 20 
   },
   header: {
     flexDirection: 'row',

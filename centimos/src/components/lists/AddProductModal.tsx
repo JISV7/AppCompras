@@ -36,11 +36,11 @@ export function AddProductModal({ visible, onClose, onSubmit }: AddProductModalP
                 style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}
             >
                 <View style={[styles.modalContainer, { backgroundColor: bgColor }]}>
-                    <Text style={[styles.title, { color: textColor }]}>Enter Barcode</Text>
+                    <Text style={[styles.title, { color: textColor }]}>Ingresar código de barras</Text>
 
                     <TextInput
                         style={[styles.input, { borderColor: primaryColor, color: textColor }]}
-                        placeholder="Type barcode number..."
+                        placeholder="Escribe el número del código..."
                         placeholderTextColor="#999"
                         keyboardType="numeric"
                         value={code}
@@ -51,14 +51,14 @@ export function AddProductModal({ visible, onClose, onSubmit }: AddProductModalP
 
                     <View style={styles.buttonsRow}>
                         <TouchableOpacity onPress={onClose} style={styles.button}>
-                            <Text style={{ color: '#666' }}>Cancel</Text>
+                            <Text style={{ color: '#666' }}>Cancelar</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             onPress={handleAdd}
                             style={[styles.button, styles.addButton, { backgroundColor: primaryColor }]}
                         >
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>Add</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold' }}>Agregar</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

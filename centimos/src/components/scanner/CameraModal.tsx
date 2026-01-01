@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 import { CameraView } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useState } from 'react';
 
 interface CameraModalProps {
   visible: boolean;
@@ -9,30 +10,53 @@ interface CameraModalProps {
 }
 
 export function CameraModal({ visible, onClose, onBarcodeScanned }: CameraModalProps) {
+  const [torch, setTorch] = useState(false);
+
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+    <Modal 
+      visible={visible} 
+      animationType="slide" 
+      presentationStyle="fullScreen"
+      statusBarTranslucent
+    >
       <View style={styles.container}>
         
         {/* 1. The Camera (Background) */}
         <CameraView
-          style={StyleSheet.absoluteFill} // Fills the whole screen
+          style={StyleSheet.absoluteFill} 
           facing="back"
+          enableTorch={torch}
           onBarcodeScanned={onBarcodeScanned}
           barcodeScannerSettings={{
             barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "qr"],
           }}
         />
 
-        {/* 2. The Overlay (Foreground - Siblings, not Children!) */}
+        {/* 2. The Overlay */}
         <View style={styles.overlay}>
-          <View style={styles.scanFrame} />
-          <Text style={styles.instruction}>Align barcode within frame</Text>
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => setTorch(!torch)}>
+              <MaterialIcons 
+                name={torch ? "flashlight-on" : "flashlight-off"} 
+                size={28} 
+                color="white" 
+              />
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={30} color="white" />
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={onClose}>
+              <Ionicons name="close" size={30} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.centerContainer}>
+            <View style={styles.scanFrame} />
+            <Text style={styles.instruction}>Alinea el código de barras dentro del cuadro</Text>
+          </View>
+
+          {/* Bottom spacer to prevent seeing background tabs */}
+          <View style={styles.bottomBar} />
         </View>
 
       </View>
@@ -43,21 +67,35 @@ export function CameraModal({ visible, onClose, onBarcodeScanned }: CameraModalP
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'black' },
   overlay: {
-    ...StyleSheet.absoluteFillObject, // Sits exactly on top of camera
-    backgroundColor: 'rgba(0,0,0,0.5)', // Darken background
-    justifyContent: 'center',
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'space-between',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+  },
+  centerContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
   scanFrame: {
-    width: 250, height: 250,
-    borderWidth: 2, borderColor: 'white', borderRadius: 20,
+    width: 260, height: 260,
+    borderWidth: 2, borderColor: 'white', borderRadius: 24,
     backgroundColor: 'transparent'
   },
   instruction: {
-    color: 'white', marginTop: 20, fontSize: 16, fontWeight: '500'
+    color: 'white', marginTop: 24, fontSize: 16, fontWeight: '600',
+    textAlign: 'center', paddingHorizontal: 40
   },
-  closeButton: {
-    position: 'absolute', top: 50, right: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, padding: 8
+  iconButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 25, width: 50, height: 50,
+    alignItems: 'center', justifyContent: 'center'
+  },
+  bottomBar: {
+    height: 100,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   }
 });

@@ -61,7 +61,7 @@ CREATE TABLE price_logs (
     product_barcode VARCHAR(20) REFERENCES products(barcode),
     store_id UUID REFERENCES stores(store_id),
     user_id UUID REFERENCES users(user_id),
-    price DECIMAL(10, 2) NOT NULL,
+    price DECIMAL(18, 8) NOT NULL,
     currency VARCHAR(5) DEFAULT 'USD', -- Always recommend storing as USD
     recorded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -72,7 +72,7 @@ CREATE TABLE shopping_lists (
     list_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(user_id),
     name VARCHAR(100) NOT NULL, -- "Monthly Grocery", "BBQ Weekend"
-    budget_limit DECIMAL(10, 2), -- The "Upper limit" $110
+    budget_limit DECIMAL(18, 8), -- The "Upper limit" $110
     currency VARCHAR(5) DEFAULT 'USD',
     status VARCHAR(20) DEFAULT 'ACTIVE', -- 'ACTIVE', 'COMPLETED', 'ARCHIVED'
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -85,7 +85,7 @@ CREATE TABLE list_items (
     list_id UUID REFERENCES shopping_lists(list_id) ON DELETE CASCADE,
     product_barcode VARCHAR(20) REFERENCES products(barcode),
     quantity INTEGER DEFAULT 1,
-    planned_price DECIMAL(10, 2),
+    planned_price DECIMAL(18, 8),
     is_purchased BOOLEAN DEFAULT FALSE,
     added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     store_id UUID REFERENCES stores(store_id) ON DELETE SET NULL

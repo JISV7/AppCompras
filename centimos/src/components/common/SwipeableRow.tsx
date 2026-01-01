@@ -5,6 +5,34 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, interpolate, Extrapolation, SharedValue, LinearTransition } from 'react-native-reanimated';
 
+interface RightActionProps {
+    drag: SharedValue<number>;
+    bottomMargin: number;
+}
+
+function RightAction({ drag, bottomMargin }: RightActionProps) {
+    const style = useAnimatedStyle(() => {
+        const scale = interpolate(
+            drag.value,
+            [-100, 0],
+            [1, 0],
+            Extrapolation.CLAMP
+        );
+        return {
+            transform: [{ scale }],
+        };
+    });
+
+    return (
+        <View style={[styles.rightAction, { marginBottom: bottomMargin }]}>
+            <Animated.View style={[styles.actionIcon, style]}>
+                <Ionicons name="trash" size={30} color="white" />
+                <Text style={styles.actionText}>Eliminar</Text>
+            </Animated.View>
+        </View>
+    );
+}
+
 interface SwipeableRowProps {
     children: React.ReactNode;
     onDelete: () => void;
@@ -33,26 +61,7 @@ export function SwipeableRow({ children, onDelete, onUndo, height = 80, bottomMa
         progress: SharedValue<number>,
         drag: SharedValue<number>
     ) => {
-        const style = useAnimatedStyle(() => {
-            const scale = interpolate(
-                drag.value,
-                [-100, 0],
-                [1, 0],
-                Extrapolation.CLAMP
-            );
-            return {
-                transform: [{ scale }],
-            };
-        });
-
-        return (
-            <View style={[styles.rightAction, { marginBottom: bottomMargin }]}>
-                <Animated.View style={[styles.actionIcon, style]}>
-                    <Ionicons name="trash" size={30} color="white" />
-                    <Text style={styles.actionText}>Delete</Text>
-                </Animated.View>
-            </View>
-        );
+        return <RightAction drag={drag} bottomMargin={bottomMargin} />;
     };
 
     const handleDelete = () => {
@@ -95,9 +104,9 @@ export function SwipeableRow({ children, onDelete, onUndo, height = 80, bottomMa
                 layout={LinearTransition}
                 style={[styles.undoContainer, { height, marginBottom: bottomMargin > 0 ? bottomMargin : 10 }]}
             >
-                <Text style={styles.undoText}>Deleted. Undo in {timerLeft}s</Text>
+                <Text style={styles.undoText}>Eliminado. Deshacer en {timerLeft}s</Text>
                 <TouchableOpacity onPress={handleUndo} style={styles.undoBtn}>
-                    <Text style={styles.undoBtnText}>UNDO</Text>
+                    <Text style={styles.undoBtnText}>DESHACER</Text>
                 </TouchableOpacity>
             </Animated.View>
         );

@@ -53,7 +53,7 @@ export default function ListsScreen() {
       setNewListBudget('');
       setModalVisible(false);
       loadLists(); // Refresh
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "No se pudo crear la lista");
     } finally {
       setCreating(false);
@@ -67,7 +67,7 @@ export default function ListsScreen() {
 
     try {
       await deleteList(listId);
-    } catch (e) {
+    } catch {
       // Revert on failure
       setLists(originalLists);
       Alert.alert("Error", "No se pudo eliminar la lista");

@@ -52,7 +52,7 @@ export function StoreSelectorModal({ visible, onClose, onSelect }: StoreSelector
         setStores([]);
       }
     } catch (error) {
-      console.error("Error loading stores", error);
+      console.error("Error cargando tiendas", error);
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export function StoreSelectorModal({ visible, onClose, onSelect }: StoreSelector
       <View style={styles.info}>
         <Text style={[styles.name, { color: textColor }]}>{item.name}</Text>
         <Text style={[styles.address, { color: subTextColor }]} numberOfLines={1}>
-          {item.address || 'No address'}
+          {item.address || 'Sin dirección'}
         </Text>
       </View>
       <Ionicons name="add-circle-outline" size={24} color={primaryColor} />
@@ -95,10 +95,13 @@ export function StoreSelectorModal({ visible, onClose, onSelect }: StoreSelector
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={onClose}>
+      <View style={styles.overlay}>
+        {/* Sibling backdrop behind the content */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        
         <View style={[styles.content, { backgroundColor: bgColor }]}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: textColor }]}>Select Store</Text>
+            <Text style={[styles.title, { color: textColor }]}>Seleccionar Tienda</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={subTextColor} />
             </TouchableOpacity>
@@ -108,7 +111,7 @@ export function StoreSelectorModal({ visible, onClose, onSelect }: StoreSelector
             <Ionicons name="search" size={20} color={subTextColor} />
             <TextInput
               style={[styles.input, { color: textColor }]}
-              placeholder="Search by name or address..."
+              placeholder="Buscar por nombre o dirección..."
               placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={handleSearch}
@@ -124,21 +127,21 @@ export function StoreSelectorModal({ visible, onClose, onSelect }: StoreSelector
               keyExtractor={(item) => item.store_id}
               ListEmptyComponent={
                 <Text style={{ textAlign: 'center', color: subTextColor, marginTop: 20 }}>
-                  {searchQuery.length > 0 ? "No matches found." : "Search for a store or enable location to see nearby options."}
+                  {searchQuery.length > 0 ? "No se encontraron coincidencias." : "Busca una tienda o activa la ubicación para ver opciones cercanas."}
                 </Text>
               }
               contentContainerStyle={{ paddingBottom: 20 }}
             />
           )}
         </View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
-  content: { borderRadius: 20, maxHeight: '70%', padding: 20 },
+  content: { borderRadius: 20, maxHeight: '80%', padding: 20, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   title: { fontSize: 18, fontWeight: 'bold' },
   searchBar: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 12, marginBottom: 15 },
