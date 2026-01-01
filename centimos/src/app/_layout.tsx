@@ -28,10 +28,12 @@ function InitialLayout() {
       // If user is logged in, but currently on a public screen (like Login),
       // redirect them to the Tabs (Home)
       router.replace('/(tabs)');
-    } else if (!user && segments[0] === '(tabs)') {
-      // If user is NOT logged in, but tries to access Tabs,
-      // kick them back to Welcome
-      router.replace('/(public)/welcome');
+    } else if (!user) {
+      // Protect (tabs), product, and lists routes
+      const protectedGroups = ['(tabs)', 'product', 'lists'];
+      if (protectedGroups.includes(segments[0])) {
+        router.replace('/(public)/welcome');
+      }
     }
   }, [user, isLoading, segments]);
 
