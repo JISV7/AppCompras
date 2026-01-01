@@ -53,7 +53,7 @@ async def _fetch_dolarapi() -> Decimal | None:
         async with httpx.AsyncClient() as client:
             response = await client.get(DOLARAPI_URL, timeout=15.0)
             response.raise_for_status()
-        
+
         data = response.json()
         rate = Decimal(data["promedio"])
         logger.info(f"Successfully fetched DolarAPI rate: {rate}")
@@ -99,11 +99,15 @@ async def update_exchange_rate(db: AsyncSession):
         latest_record = result.scalars().first()
 
         if latest_record and latest_record.rate_to_ves == rate:
-            logger.info(f"Rate {rate} hasn't changed since {latest_record.recorded_at}. Skipping save.")
+            logger.info(
+                f"Rate {rate} hasn't changed since {latest_record.recorded_at}. Skipping save."
+            )
             return latest_record
 
         # Save new rate if it's different or if it's the first record
-        logger.info(f"Saving new exchange rate {rate} from source {source} to database.")
+        logger.info(
+            f"Saving new exchange rate {rate} from source {source} to database."
+        )
         new_rate = ExchangeRate(
             currency_code="USD",
             rate_to_ves=rate,

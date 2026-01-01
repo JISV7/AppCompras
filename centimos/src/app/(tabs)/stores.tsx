@@ -121,7 +121,7 @@ export default function StoresScreen() {
       <View style={styles.info}>
         <Text style={[styles.storeName, { color: textColor }]}>{item.name}</Text>
         <Text style={[styles.storeAddress, { color: subTextColor }]} numberOfLines={2}>
-          {item.address || "No address provided"}
+          {item.address || "Dirección no disponible"}
         </Text>
         
         {/* Distance Badge */}
@@ -143,7 +143,7 @@ export default function StoresScreen() {
       
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: textColor }]}>Stores</Text>
+        <Text style={[styles.title, { color: textColor }]}>Tiendas</Text>
         <TouchableOpacity onPress={() => setModalVisible(true)}>
              <Ionicons name="add-circle" size={32} color={primaryColor} />
         </TouchableOpacity>
@@ -155,7 +155,7 @@ export default function StoresScreen() {
             <Ionicons name="search" size={20} color={subTextColor} />
             <TextInput
                 style={[styles.input, { color: textColor }]}
-                placeholder="Search stores..."
+                placeholder="Buscar tiendas..."
                 placeholderTextColor="#999"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -182,7 +182,7 @@ export default function StoresScreen() {
           ListEmptyComponent={
             <View style={styles.centerEmpty}>
               <FontAwesome5 name="search" size={40} color={subTextColor} />
-              <Text style={{ color: subTextColor, marginTop: 10 }}>No stores found.</Text>
+              <Text style={{ color: subTextColor, marginTop: 10 }}>No se encontraron tiendas.</Text>
             </View>
           }
           refreshing={loading}

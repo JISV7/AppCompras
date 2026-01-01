@@ -54,7 +54,7 @@ export default function ListsScreen() {
       setModalVisible(false);
       loadLists(); // Refresh
     } catch (error) {
-      Alert.alert("Error", "Could not create list");
+      Alert.alert("Error", "No se pudo crear la lista");
     } finally {
       setCreating(false);
     }
@@ -70,7 +70,7 @@ export default function ListsScreen() {
     } catch (e) {
       // Revert on failure
       setLists(originalLists);
-      Alert.alert("Error", "Could not delete list");
+      Alert.alert("Error", "No se pudo eliminar la lista");
     }
   };
 
@@ -87,7 +87,7 @@ export default function ListsScreen() {
         <View style={styles.cardContent}>
           <Text style={[styles.cardTitle, { color: textColor }]}>{item.name}</Text>
           <Text style={styles.cardSubtitle}>
-            {item.items?.length || 0} items • {item.status}
+            {item.items?.length || 0} artículos • {item.status}
             {item.budget_limit ? ` • ${item.currency}${item.budget_limit}` : ''}
           </Text>
         </View>
@@ -99,7 +99,7 @@ export default function ListsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: bgColor, paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: textColor }]}>My Lists</Text>
+        <Text style={[styles.title, { color: textColor }]}>Mis Listas</Text>
       </View>
 
       {loading ? (
@@ -112,7 +112,7 @@ export default function ListsScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <Text style={{ textAlign: 'center', color: '#888', marginTop: 50 }}>
-              No lists yet. Create one below!
+              No hay listas aún. ¡Crea una abajo!
             </Text>
           }
         />
@@ -130,11 +130,11 @@ export default function ListsScreen() {
       <Modal visible={modalVisible} transparent animationType="fade" statusBarTranslucent>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
           <View style={[styles.modalContent, { backgroundColor: cardColor }]}>
-            <Text style={[styles.modalTitle, { color: textColor }]}>New List</Text>
+            <Text style={[styles.modalTitle, { color: textColor }]}>Nueva Lista</Text>
 
             <TextInput
               style={[styles.input, { color: textColor, borderColor: '#ccc' }]}
-              placeholder="List Name (e.g. Weekly Groceries)"
+              placeholder="Nombre de la lista"
               placeholderTextColor="#999"
               value={newListName}
               onChangeText={setNewListName}
@@ -143,7 +143,7 @@ export default function ListsScreen() {
 
             <TextInput
               style={[styles.input, { color: textColor, borderColor: '#ccc' }]}
-              placeholder="Budget Limit (Optional)"
+              placeholder="Límite de presupuesto (Opcional)"
               placeholderTextColor="#999"
               value={newListBudget}
               onChangeText={setNewListBudget}
@@ -152,10 +152,10 @@ export default function ListsScreen() {
 
             <View style={styles.modalButtons}>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.cancelBtn}>
-                <Text style={{ color: '#888' }}>Cancel</Text>
+                <Text style={{ color: '#888' }}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleCreate} style={styles.createBtn} disabled={creating}>
-                {creating ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>Create</Text>}
+                {creating ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>Crear</Text>}
               </TouchableOpacity>
             </View>
           </View>

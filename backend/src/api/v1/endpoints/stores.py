@@ -11,7 +11,9 @@ router = APIRouter()
 
 
 @router.post("/", response_model=StoreRead)
-async def create_store(store_in: StoreCreate, db: SessionDep, current_user: CurrentUser):
+async def create_store(
+    store_in: StoreCreate, db: SessionDep, current_user: CurrentUser
+):
     # SRID 4326 is WGS 84 (GPS coordinates)
     point = f"POINT({store_in.longitude} {store_in.latitude})"
 
@@ -27,7 +29,7 @@ async def create_store(store_in: StoreCreate, db: SessionDep, current_user: Curr
     # Manually attach lat/lon for the response
     setattr(new_store, "latitude", store_in.latitude)
     setattr(new_store, "longitude", store_in.longitude)
-    
+
     return new_store
 
 
@@ -43,20 +45,17 @@ async def search_stores(
     stmt = select(
         Store,
         func.ST_Y(func.cast(Store.location, Geometry)).label("latitude"),
-        func.ST_X(func.cast(Store.location, Geometry)).label("longitude")
+        func.ST_X(func.cast(Store.location, Geometry)).label("longitude"),
     )
 
     if q:
         stmt = stmt.where(
-            or_(
-                Store.name.ilike(f"%{q}%"),
-                Store.address.ilike(f"%{q}%")
-            )
+            or_(Store.name.ilike(f"%{q}%"), Store.address.ilike(f"%{q}%"))
         )
-    
+
     stmt = stmt.limit(limit).offset(offset)
     result = await db.execute(stmt)
-    
+
     stores = []
     for row in result:
         store_obj = row[0]
@@ -64,7 +63,7 @@ async def search_stores(
         setattr(store_obj, "latitude", row.latitude)
         setattr(store_obj, "longitude", row.longitude)
         stores.append(store_obj)
-        
+
     return stores
 
 
@@ -82,10 +81,8 @@ async def get_nearby_stores(
     stmt = select(
         Store,
         func.ST_Y(func.cast(Store.location, Geometry)).label("latitude"),
-        func.ST_X(func.cast(Store.location, Geometry)).label("longitude")
-    ).where(
-        func.ST_DWithin(Store.location, user_location, radius_meters, True)
-    )
+        func.ST_X(func.cast(Store.location, Geometry)).label("longitude"),
+    ).where(func.ST_DWithin(Store.location, user_location, radius_meters, True))
 
     result = await db.execute(stmt)
     stores = []
@@ -94,5 +91,5 @@ async def get_nearby_stores(
         setattr(store_obj, "latitude", row.latitude)
         setattr(store_obj, "longitude", row.longitude)
         stores.append(store_obj)
-        
+
     return stores

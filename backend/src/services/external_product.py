@@ -13,10 +13,15 @@ def validate_gtin(gtin: str) -> bool:
     Supports 8, 12, 13, and 14 digit formats.
     """
     if not gtin or not gtin.isdigit() or not (8 <= len(gtin) <= 14):
-        raise HTTPException(status_code=400, detail=f"Invalid barcode. 8, 12, 13, or 14 digits expected, got {len(gtin) if gtin else 0} digits.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid barcode. 8, 12, 13, or 14 digits expected, got {len(gtin) if gtin else 0} digits.",
+        )
 
     if not is_valid_check_digit(gtin):
-        raise HTTPException(status_code=400, detail=f"Invalid check digit for barcode: {gtin}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid check digit for barcode: {gtin}"
+        )
 
     return True
 
@@ -54,7 +59,7 @@ def normalize_to_gtin13(barcode: str) -> str:
     This ensures consistency in the database and prevents duplicates.
     """
     # Remove any non-digit characters
-    clean_barcode = ''.join(filter(str.isdigit, barcode))
+    clean_barcode = "".join(filter(str.isdigit, barcode))
 
     # Pad with leading zeros to make it 13 digits (GTIN-13)
     gtin13 = clean_barcode.zfill(13)

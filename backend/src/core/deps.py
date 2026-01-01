@@ -14,9 +14,8 @@ from src.models.user import User
 from src.schemas.user import TokenPayload
 
 # Define the OAuth2 scheme
-reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login"
-)
+reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
@@ -33,7 +32,7 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> User:
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
-        
+
         if token_data.sub is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -41,7 +40,7 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> User:
             )
 
         user_uuid = uuid.UUID(token_data.sub)
-        
+
     except (JWTError, ValidationError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -54,5 +53,6 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> User:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

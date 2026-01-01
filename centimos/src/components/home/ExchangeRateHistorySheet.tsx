@@ -67,7 +67,7 @@ export function ExchangeRateHistorySheet({ visible, onClose }: ExchangeRateHisto
                 <Pressable style={[styles.sheet, { backgroundColor: sheetColor }]} onPress={(e) => e.stopPropagation()}>
                     <View style={styles.handle} />
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: textColor }]}>Histórico de Tasa</Text>
+                        <Text style={[styles.title, { color: textColor }]}>Tasa de Cambio Histórico</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close-circle" size={30} color={subTextColor} />
                         </TouchableOpacity>

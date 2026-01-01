@@ -174,4 +174,26 @@ export const createStore = async (name: string, address: string, latitude: numbe
   }
 };
 
+export const uploadImage = async (uri: string): Promise<string | null> => {
+  try {
+    const formData = new FormData();
+    // @ts-ignore
+    formData.append('file', {
+      uri,
+      name: 'photo.jpg',
+      type: 'image/jpeg',
+    });
+
+    const response = await api.post('/upload/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.url;
+  } catch (error) {
+    console.error("Failed to upload image", error);
+    return null;
+  }
+};
+
 export default api;

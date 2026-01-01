@@ -24,8 +24,14 @@ class Settings(BaseSettings):
     MAIL_SERVER: str
     MAIL_FROM_NAME: str = "Centimos App"
 
+    # Supabase Storage
+    SUPABASE_URL: str
+    SUPABASE_KEY: str
+
     # Configuration to read from .env file
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=True, extra="ignore"
+    )
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:

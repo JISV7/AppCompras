@@ -71,18 +71,23 @@ async def update_list(
         raise HTTPException(status_code=404, detail="List not found")
 
     if shopping_list.user_id != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this list")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to update this list"
+        )
 
     update_data = list_update.model_dump(exclude_unset=True)
 
     if shopping_list.status == "COMPLETED":
         # Only allow updates if we are changing status back to ACTIVE (re-opening)
         if update_data.get("status") != "ACTIVE":
-             raise HTTPException(status_code=400, detail="Cannot edit a completed list. Re-open it first.")
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot edit a completed list. Re-open it first.",
+            )
         else:
-             # Reset planned prices to defaults (None) on reopen
-             for item in shopping_list.items:
-                 item.planned_price = None
+            # Reset planned prices to defaults (None) on reopen
+            for item in shopping_list.items:
+                item.planned_price = None
 
     for field, value in update_data.items():
         setattr(shopping_list, field, value)
@@ -103,7 +108,9 @@ async def delete_list(list_id: uuid.UUID, db: SessionDep, current_user: CurrentU
         raise HTTPException(status_code=404, detail="List not found")
 
     if shopping_list.user_id != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this list")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to delete this list"
+        )
 
     await db.delete(shopping_list)
     await db.commit()
@@ -114,7 +121,9 @@ async def complete_list(
     list_id: uuid.UUID,
     db: SessionDep,
     current_user: CurrentUser,
-    store_id: uuid.UUID = Query(...) # Assume all items were bought at this store for simplicity for now
+    store_id: uuid.UUID = Query(
+        ...
+    ),  # Assume all items were bought at this store for simplicity for now
 ):
     # 1. Verify list exists and belongs to user
     result = await db.execute(
@@ -124,19 +133,23 @@ async def complete_list(
     if not shopping_list:
         raise HTTPException(status_code=404, detail="List not found")
     if shopping_list.user_id != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to complete this list")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to complete this list"
+        )
 
     # 2. Verify Store exists
     store_check = await db.execute(select(Store).where(Store.store_id == store_id))
     if not store_check.scalars().first():
-        raise HTTPException(status_code=404, detail=f"Store with ID {store_id} not found.")
+        raise HTTPException(
+            status_code=404, detail=f"Store with ID {store_id} not found."
+        )
 
     # 3. Process each item in the list
     for item in shopping_list.items:
         if not item.is_purchased and item.planned_price is not None:
             # Mark as purchased
             item.is_purchased = True
-            item.store_id = store_id # Assign the store to the item
+            item.store_id = store_id  # Assign the store to the item
 
             # Log price if not already logged (avoid duplicates from update_item)
             existing_price_log = await db.execute(
@@ -144,7 +157,7 @@ async def complete_list(
                     PriceLog.product_barcode == item.product_barcode,
                     PriceLog.user_id == current_user.user_id,
                     PriceLog.store_id == store_id,
-                    PriceLog.price == item.planned_price
+                    PriceLog.price == item.planned_price,
                 )
             )
             if not existing_price_log.scalars().first():
@@ -152,18 +165,22 @@ async def complete_list(
                     product_barcode=item.product_barcode,
                     store_id=store_id,
                     price=item.planned_price,
-                    currency=shopping_list.currency
+                    currency=shopping_list.currency,
                 )
-                new_price_log = PriceLog(**price_log_create.model_dump(), user_id=current_user.user_id)
+                new_price_log = PriceLog(
+                    **price_log_create.model_dump(), user_id=current_user.user_id
+                )
                 db.add(new_price_log)
-            db.add(item) # Add updated item to session
-    
+            db.add(item)  # Add updated item to session
+
     # 4. Update shopping list status
     shopping_list.status = "COMPLETED"
     db.add(shopping_list)
 
     await db.commit()
-    await db.refresh(shopping_list) # Refresh to get latest state, including updated items
+    await db.refresh(
+        shopping_list
+    )  # Refresh to get latest state, including updated items
     return shopping_list
 
 
@@ -201,7 +218,7 @@ async def add_item(
     existing_item = await db.execute(
         select(ListItem).where(
             ListItem.list_id == list_id,
-            ListItem.product_barcode == item_in.product_barcode
+            ListItem.product_barcode == item_in.product_barcode,
         )
     )
     item = existing_item.scalars().first()
@@ -238,13 +255,10 @@ async def delete_item(
         raise HTTPException(status_code=404, detail="List not found")
     if shopping_list.user_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this list")
-    
+
     # 2. Find the item
     item_result = await db.execute(
-        select(ListItem).where(
-            ListItem.list_id == list_id,
-            ListItem.item_id == item_id
-        )
+        select(ListItem).where(ListItem.list_id == list_id, ListItem.item_id == item_id)
     )
     item = item_result.scalars().first()
     if not item:
@@ -277,14 +291,13 @@ async def update_item(
 
     if shopping_list.status == "COMPLETED":
         if "planned_price" in update_data:
-             raise HTTPException(status_code=400, detail="Cannot update price in a completed list")
+            raise HTTPException(
+                status_code=400, detail="Cannot update price in a completed list"
+            )
 
     # 2. Find the item
     item_result = await db.execute(
-        select(ListItem).where(
-            ListItem.list_id == list_id,
-            ListItem.item_id == item_id
-        )
+        select(ListItem).where(ListItem.list_id == list_id, ListItem.item_id == item_id)
     )
     item = item_result.scalars().first()
     if not item:
@@ -296,19 +309,27 @@ async def update_item(
         setattr(item, field, value)
 
     # If item is marked as purchased, log the price
-    if item.is_purchased and item.planned_price is not None and item.store_id is not None:
+    if (
+        item.is_purchased
+        and item.planned_price is not None
+        and item.store_id is not None
+    ):
         # Verify Store exists
-        store_check = await db.execute(select(Store).where(Store.store_id == item.store_id))
+        store_check = await db.execute(
+            select(Store).where(Store.store_id == item.store_id)
+        )
         if not store_check.scalars().first():
-            raise HTTPException(status_code=404, detail=f"Store with ID {item.store_id} not found.")
-        
+            raise HTTPException(
+                status_code=404, detail=f"Store with ID {item.store_id} not found."
+            )
+
         # Check if a price log already exists for this item, user, store, and price to avoid duplicates
         existing_price_log = await db.execute(
             select(PriceLog).where(
                 PriceLog.product_barcode == item.product_barcode,
                 PriceLog.user_id == current_user.user_id,
                 PriceLog.store_id == item.store_id,
-                PriceLog.price == item.planned_price
+                PriceLog.price == item.planned_price,
             )
         )
         if not existing_price_log.scalars().first():
@@ -316,14 +337,16 @@ async def update_item(
                 product_barcode=item.product_barcode,
                 store_id=item.store_id,
                 price=item.planned_price,
-                currency=shopping_list.currency # Use the list's currency
+                currency=shopping_list.currency,  # Use the list's currency
             )
-            new_price_log = PriceLog(**price_log_create.model_dump(), user_id=current_user.user_id)
+            new_price_log = PriceLog(
+                **price_log_create.model_dump(), user_id=current_user.user_id
+            )
             db.add(new_price_log)
 
     db.add(item)
     await db.commit()
-    
+
     # 4. Refresh List to return full structure
     await db.refresh(shopping_list)
     return shopping_list

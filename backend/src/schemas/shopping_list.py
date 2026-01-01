@@ -48,6 +48,6 @@ class ShoppingListRead(BaseSchema):
     list_id: UUID
     name: str
     budget_limit: Optional[float]
-    currency: Optional[str] # Match model
+    currency: Optional[str]  # Match model
     status: str
     items: List[ListItemRead] = []

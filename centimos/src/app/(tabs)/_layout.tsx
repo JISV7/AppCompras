@@ -22,7 +22,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Inicio',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
@@ -31,7 +31,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
+          title: 'Explorar',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
@@ -40,7 +40,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="lists"
         options={{
-          title: 'My Lists',
+          title: 'Mis Listas',
           tabBarIcon: ({ color }) => <MaterialIcons name="format-list-bulleted" size={28} color={color} />,
         }}
       />
@@ -49,8 +49,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="stores"
         options={{
-          title: 'Stores',
-          tabBarIcon: ({ color }) => <Ionicons name="storefront" size={26} color={color} />,
+          title: 'Tiendas',
+          tabBarIcon: ({ color }) => <Ionicons name="storefront" size={28} color={color} />,
         }}
       />
 

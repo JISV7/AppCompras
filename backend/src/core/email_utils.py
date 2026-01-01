@@ -1,6 +1,5 @@
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from src.core.config import settings
-from pathlib import Path
 
 # Configure the connection to the email server
 conf = ConnectionConfig(
@@ -12,14 +11,15 @@ conf = ConnectionConfig(
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
+    VALIDATE_CERTS=True,
 )
+
 
 async def send_reset_code(email_to: str, code: str):
     """
     Sends the 6-digit reset code to the user.
     """
-    
+
     html = f"""
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
         <h2>Password Reset Request</h2>
@@ -35,7 +35,7 @@ async def send_reset_code(email_to: str, code: str):
         subject="Your Centimos Password Reset Code",
         recipients=[email_to],
         body=html,
-        subtype=MessageType.html
+        subtype=MessageType.html,
     )
 
     fm = FastMail(conf)
