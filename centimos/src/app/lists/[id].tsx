@@ -515,98 +515,102 @@ export default function ListDetailScreen() {
               Marcar todos los artículos como comprados en una misma tienda.
             </Text>
 
-            {/* Store Selection */}
-            <View style={styles.storeSelectContainer}>
-                <Text style={[styles.storeSelectLabel, { color: textColor }]}>Comprado en:</Text>
-                
-                {/* Search Bar */}
-                <View style={[styles.modalSearchBar, { backgroundColor: bgColor }]}>
-                    <Ionicons name="search" size={18} color={subTextColor} />
-                    <TextInput
-                        style={[styles.modalSearchInput, { color: textColor }]}
-                        placeholder="Buscar nombre/dirección de tienda..."
-                        placeholderTextColor="#999"
-                        value={storeSearchQuery}
-                        onChangeText={handleStoreSearch}
-                    />
-                </View>
+            <ScrollView style={{ width: '100%' }} showsVerticalScrollIndicator={false} nestedScrollEnabled>
+              {/* Store Selection */}
+              <View style={styles.storeSelectContainer}>
+                  <Text style={[styles.storeSelectLabel, { color: textColor }]}>Comprado en:</Text>
+                  
+                  {/* Search Bar */}
+                  <View style={[styles.modalSearchBar, { backgroundColor: bgColor }]}>
+                      <Ionicons name="search" size={18} color={subTextColor} />
+                      <TextInput
+                          style={[styles.modalSearchInput, { color: textColor }]}
+                          placeholder="Buscar nombre/dirección de tienda..."
+                          placeholderTextColor="#999"
+                          value={storeSearchQuery}
+                          onChangeText={handleStoreSearch}
+                      />
+                  </View>
 
-                {/* Search Results / Selected Store */}
-                {storeSearchResults.length > 0 ? (
-                    <ScrollView style={styles.searchResultsContainer} nestedScrollEnabled>
-                        {storeSearchResults.map(store => (
-                            <TouchableOpacity 
-                                key={store.store_id} 
-                                style={[styles.searchResultItem, selectedStoreForCompletion === store.store_id && { backgroundColor: `${primaryColor}22` }]}
-                                onPress={() => setSelectedStoreForCompletion(store.store_id)}
-                            >
-                                <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
-                                <Text style={styles.searchResultAddress} numberOfLines={1}>{store.address}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                ) : selectedStoreForCompletion && !isNearbyExpanded ? (
-                    <View style={[styles.selectedStoreRow, { backgroundColor: `${primaryColor}11`, borderColor: primaryColor }]}>
-                        <Ionicons name="checkmark-circle" size={20} color={primaryColor} />
-                        <Text style={{ color: textColor, fontWeight: 'bold', marginLeft: 8 }}>
-                            {nearbyStores.find(s => s.store_id === selectedStoreForCompletion)?.name || 
-                             storeSearchResults.find(s => s.store_id === selectedStoreForCompletion)?.name || 
-                             "Tienda Seleccionada"}
-                        </Text>
-                    </View>
-                ) : null}
+                  {/* Search Results / Selected Store */}
+                  {storeSearchResults.length > 0 ? (
+                      <View style={styles.searchResultsContainer}>
+                          {storeSearchResults.map(store => (
+                              <TouchableOpacity 
+                                  key={store.store_id} 
+                                  style={[styles.searchResultItem, selectedStoreForCompletion === store.store_id && { backgroundColor: `${primaryColor}22` }]}
+                                  onPress={() => setSelectedStoreForCompletion(store.store_id)}
+                              >
+                                  <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
+                                  <Text style={styles.searchResultAddress} numberOfLines={1}>{store.address}</Text>
+                              </TouchableOpacity>
+                          ))}
+                      </View>
+                  ) : selectedStoreForCompletion && !isNearbyExpanded ? (
+                      <View style={[styles.selectedStoreRow, { backgroundColor: `${primaryColor}11`, borderColor: primaryColor }]}>
+                          <Ionicons name="checkmark-circle" size={20} color={primaryColor} />
+                          <Text style={{ color: textColor, fontWeight: 'bold', marginLeft: 8 }}>
+                              {nearbyStores.find(s => s.store_id === selectedStoreForCompletion)?.name || 
+                               storeSearchResults.find(s => s.store_id === selectedStoreForCompletion)?.name || 
+                               "Tienda Seleccionada"}
+                          </Text>
+                      </View>
+                  ) : null}
 
-                {/* Collapsible Nearby */}
-                <TouchableOpacity 
-                    style={styles.nearbyToggle} 
-                    onPress={() => setIsNearbyExpanded(!isNearbyExpanded)}
-                >
-                    <Text style={{ color: primaryColor, fontWeight: 'bold' }}>
-                        {isNearbyExpanded ? "Ocultar Cercanas" : "Mostrar Tiendas Cercanas"}
-                    </Text>
-                    <Ionicons name={isNearbyExpanded ? "chevron-up" : "chevron-down"} size={16} color={primaryColor} />
-                </TouchableOpacity>
+                  {/* Collapsible Nearby */}
+                  <TouchableOpacity 
+                      style={styles.nearbyToggle} 
+                      onPress={() => setIsNearbyExpanded(!isNearbyExpanded)}
+                  >
+                      <Text style={{ color: primaryColor, fontWeight: 'bold' }}>
+                          {isNearbyExpanded ? "Ocultar Cercanas" : "Mostrar Tiendas Cercanas"}
+                      </Text>
+                      <Ionicons name={isNearbyExpanded ? "chevron-up" : "chevron-down"} size={16} color={primaryColor} />
+                  </TouchableOpacity>
 
-                {isNearbyExpanded && (
-                    <View style={styles.nearbyList}>
-                        {nearbyStores.length > 0 ? (
-                            nearbyStores.map((store) => (
-                                <TouchableOpacity
-                                    key={store.store_id}
-                                    style={[
-                                        styles.searchResultItem,
-                                        selectedStoreForCompletion === store.store_id && { backgroundColor: `${primaryColor}22` }
-                                    ]}
-                                    onPress={() => setSelectedStoreForCompletion(store.store_id)}
-                                >
-                                    <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
-                                    <Text style={styles.searchResultAddress} numberOfLines={1}>
-                                        {store.address || "Dirección no disponible"}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))
-                        ) : (
-                            <Text style={{ color: subTextColor, textAlign: 'center', fontSize: 12 }}>No se encontraron tiendas cercanas.</Text>
-                        )}
-                    </View>
-                )}
+                  {isNearbyExpanded && (
+                      <View style={styles.nearbyList}>
+                          {nearbyStores.length > 0 ? (
+                              nearbyStores.map((store) => (
+                                  <TouchableOpacity
+                                      key={store.store_id}
+                                      style={[
+                                          styles.searchResultItem,
+                                          selectedStoreForCompletion === store.store_id && { backgroundColor: `${primaryColor}22` }
+                                      ]}
+                                      onPress={() => setSelectedStoreForCompletion(store.store_id)}
+                                  >
+                                      <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
+                                      <Text style={styles.searchResultAddress} numberOfLines={1}>
+                                          {store.address || "Dirección no disponible"}
+                                      </Text>
+                                  </TouchableOpacity>
+                              ))
+                          ) : (
+                              <Text style={{ color: subTextColor, textAlign: 'center', fontSize: 12 }}>No se encontraron tiendas cercanas.</Text>
+                          )}
+                      </View>
+                  )}
+              </View>
+            </ScrollView>
+
+            <View style={{ width: '100%', marginTop: 10 }}>
+              <TouchableOpacity
+                style={[styles.completeButton, { backgroundColor: primaryColor, opacity: completingList || !selectedStoreForCompletion ? 0.7 : 1 }]}
+                onPress={handleConfirmCompleteList}
+                disabled={completingList || !selectedStoreForCompletion}
+              >
+                {completingList ? <ActivityIndicator color="white" /> : <Text style={styles.completeButtonText}>Confirmar Finalización</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelCompleteButton}
+                onPress={() => setShowCompleteModal(false)}
+                disabled={completingList}
+              >
+                <Text style={[styles.cancelCompleteButtonText, { color: subTextColor }]}>Cancelar</Text>
+              </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={[styles.completeButton, { backgroundColor: primaryColor, opacity: completingList || !selectedStoreForCompletion ? 0.7 : 1 }]}
-              onPress={handleConfirmCompleteList}
-              disabled={completingList || !selectedStoreForCompletion}
-            >
-              {completingList ? <ActivityIndicator color="white" /> : <Text style={styles.completeButtonText}>Confirmar Finalización</Text>}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.cancelCompleteButton}
-              onPress={() => setShowCompleteModal(false)}
-              disabled={completingList}
-            >
-              <Text style={[styles.cancelCompleteButtonText, { color: subTextColor }]}>Cancelar</Text>
-            </TouchableOpacity>
 
           </Pressable>
         </Pressable>
@@ -640,10 +644,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completeModalContent: {
-    width: '85%',
+    width: '90%',
     maxWidth: 400,
-    borderRadius: 16,
-    padding: 25,
+    maxHeight: '80%',
+    borderRadius: 24,
+    padding: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -654,22 +659,22 @@ const styles = StyleSheet.create({
   completeModalTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   completeModalSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
+    marginBottom: 15,
+    lineHeight: 20,
   },
   storeSelectContainer: {
     width: '100%',
-    marginBottom: 25,
+    paddingBottom: 10,
   },
   storeSelectLabel: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 10,
+    marginBottom: 12,
     textAlign: 'center',
   },
   storeOptionContainer: {
@@ -684,7 +689,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -697,7 +702,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cancelCompleteButton: {
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   cancelCompleteButtonText: {
     fontSize: 15,
@@ -706,9 +711,9 @@ const styles = StyleSheet.create({
   modalSearchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 12,
-    marginBottom: 10,
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#eee',
   },
@@ -718,8 +723,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   searchResultsContainer: {
-    maxHeight: 120,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   searchResultItem: {
     padding: 10,
