@@ -1,133 +1,227 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable, Platform, Linking, Alert } from 'react-native';
-import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import {
+	Alert,
+	Linking,
+	Modal,
+	Pressable,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	View,
+} from "react-native";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface Store {
-  store_id: string;
-  name: string;
-  address?: string;
-  latitude?: number;
-  longitude?: number;
+	store_id: string;
+	name: string;
+	address?: string;
+	latitude?: number;
+	longitude?: number;
 }
 
 interface StoreDetailModalProps {
-  visible: boolean;
-  store: Store | null;
-  distance: string | null;
-  onClose: () => void;
+	visible: boolean;
+	store: Store | null;
+	distance: string | null;
+	onClose: () => void;
 }
 
-export function StoreDetailModal({ visible, store, distance, onClose }: StoreDetailModalProps) {
-  const bgColor = useThemeColor({}, 'background');
-  const cardColor = useThemeColor({}, 'surfaceLight');
-  const textColor = useThemeColor({}, 'textMain');
-  const subTextColor = useThemeColor({}, 'textSecondary');
-  const primaryColor = useThemeColor({}, 'primary');
+export function StoreDetailModal({
+	visible,
+	store,
+	distance,
+	onClose,
+}: StoreDetailModalProps) {
+	const bgColor = useThemeColor({}, "background");
+	const cardColor = useThemeColor({}, "surfaceLight");
+	const textColor = useThemeColor({}, "textMain");
+	const subTextColor = useThemeColor({}, "textSecondary");
+	const primaryColor = useThemeColor({}, "primary");
 
-  if (!store) return null;
+	if (!store) return null;
 
-  const openInMaps = () => {
-    if (!store.latitude || !store.longitude) return;
-    
-    // Using Google Maps Search API URL ensures it opens in the Google Maps app 
-    const url = `https://www.google.com/maps/search/?api=1&query=${store.latitude},${store.longitude}`;
+	const openInMaps = () => {
+		if (!store.latitude || !store.longitude) return;
 
-    Linking.openURL(url).catch(err => {
-      console.error("No se pudo cargar la página", err);
-      Alert.alert("Error", "No se pudo abrir Maps.");
-    });
-  };
+		// Using Google Maps Search API URL ensures it opens in the Google Maps app
+		const url = `https://www.google.com/maps/search/?api=1&query=${store.latitude},${store.longitude}`;
 
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.overlay}>
-        {/* Sibling backdrop behind the sheet */}
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        
-        <View style={[styles.sheet, { backgroundColor: bgColor }]}>
-          <View style={styles.handle} />
+		Linking.openURL(url).catch((err) => {
+			console.error("No se pudo cargar la página", err);
+			Alert.alert("Error", "No se pudo abrir Maps.");
+		});
+	};
 
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-                <View style={[styles.iconBox, { backgroundColor: '#E0F2F1' }]}>
-                    <FontAwesome5 name="store-alt" size={24} color={primaryColor} />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={[styles.name, { color: textColor }]}>{store.name}</Text>
-                    {distance && (
-                        <View style={styles.distanceBadge}>
-                            <Ionicons name="navigate" size={12} color={primaryColor} />
-                            <Text style={[styles.distanceText, { color: primaryColor }]}>A {distance}</Text>
-                        </View>
-                    )}
-                </View>
-            </View>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close-circle" size={30} color={subTextColor} />
-            </TouchableOpacity>
-          </View>
+	return (
+		<Modal
+			visible={visible}
+			animationType="slide"
+			transparent
+			onRequestClose={onClose}
+			statusBarTranslucent
+		>
+			<View style={styles.overlay}>
+				{/* Sibling backdrop behind the sheet */}
+				<Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-          <View style={styles.content}>
-            <View style={styles.section}>
-                <Text style={[styles.label, { color: subTextColor }]}>Dirección</Text>
-                <Text style={[styles.value, { color: textColor }]}>{store.address || 'Sin dirección proporcionada'}</Text>
-            </View>
+				<View style={[styles.sheet, { backgroundColor: bgColor }]}>
+					<View style={styles.handle} />
 
-            <View style={styles.section}>
-                <Text style={[styles.label, { color: subTextColor }]}>Coordenadas</Text>
-                <Text style={[styles.value, { color: textColor, fontFamily: 'monospace' }]}>
-                    {store.latitude?.toFixed(6)}, {store.longitude?.toFixed(6)}
-                </Text>
-            </View>
+					<View style={styles.header}>
+						<View style={styles.titleRow}>
+							<View style={[styles.iconBox, { backgroundColor: "#E0F2F1" }]}>
+								<FontAwesome5 name="store-alt" size={24} color={primaryColor} />
+							</View>
+							<View style={{ flex: 1 }}>
+								<Text style={[styles.name, { color: textColor }]}>
+									{store.name}
+								</Text>
+								{distance && (
+									<View style={styles.distanceBadge}>
+										<Ionicons name="navigate" size={12} color={primaryColor} />
+										<Text
+											style={[styles.distanceText, { color: primaryColor }]}
+										>
+											A {distance}
+										</Text>
+									</View>
+								)}
+							</View>
+						</View>
+						<TouchableOpacity onPress={onClose}>
+							<Ionicons name="close-circle" size={30} color={subTextColor} />
+						</TouchableOpacity>
+					</View>
 
-            <TouchableOpacity 
-                style={[styles.mapButton, { backgroundColor: primaryColor }]} 
-                onPress={openInMaps}
-                disabled={!store.latitude}
-            >
-                <MaterialIcons name="map" size={20} color="white" />
-                <Text style={styles.mapButtonText}>Abrir en Google Maps</Text>
-            </TouchableOpacity>
+					<View style={styles.content}>
+						<View style={styles.section}>
+							<Text style={[styles.label, { color: subTextColor }]}>
+								Dirección
+							</Text>
+							<Text style={[styles.value, { color: textColor }]}>
+								{store.address || "Sin dirección proporcionada"}
+							</Text>
+						</View>
 
-            <View style={styles.statsRow}>
-                <View style={[styles.statItem, { backgroundColor: cardColor }]}>
-                    <Text style={[styles.statLabel, { color: subTextColor }]}>Registros</Text>
-                    <Text style={[styles.statValue, { color: textColor }]}>-</Text>
-                </View>
-                <View style={[styles.statItem, { backgroundColor: cardColor }]}>
-                    <Text style={[styles.statLabel, { color: subTextColor }]}>Mejor Precio</Text>
-                    <Text style={[styles.statValue, { color: primaryColor }]}>-</Text>
-                </View>
-            </View>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
+						<View style={styles.section}>
+							<Text style={[styles.label, { color: subTextColor }]}>
+								Coordenadas
+							</Text>
+							<Text
+								style={[
+									styles.value,
+									{ color: textColor, fontFamily: "monospace" },
+								]}
+							>
+								{store.latitude?.toFixed(6)}, {store.longitude?.toFixed(6)}
+							</Text>
+						</View>
+
+						<TouchableOpacity
+							style={[styles.mapButton, { backgroundColor: primaryColor }]}
+							onPress={openInMaps}
+							disabled={!store.latitude}
+						>
+							<MaterialIcons name="map" size={20} color="white" />
+							<Text style={styles.mapButtonText}>Abrir en Google Maps</Text>
+						</TouchableOpacity>
+
+						<View style={styles.statsRow}>
+							<View style={[styles.statItem, { backgroundColor: cardColor }]}>
+								<Text style={[styles.statLabel, { color: subTextColor }]}>
+									Registros
+								</Text>
+								<Text style={[styles.statValue, { color: textColor }]}>-</Text>
+							</View>
+							<View style={[styles.statItem, { backgroundColor: cardColor }]}>
+								<Text style={[styles.statLabel, { color: subTextColor }]}>
+									Mejor Precio
+								</Text>
+								<Text style={[styles.statValue, { color: primaryColor }]}>
+									-
+								</Text>
+							</View>
+						</View>
+					</View>
+				</View>
+			</View>
+		</Modal>
+	);
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: '90%' },
-  handle: { width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 10, alignSelf: 'center', marginBottom: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 25 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 15 },
-  iconBox: { width: 50, height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 22, fontWeight: 'bold' },
-  distanceBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  distanceText: { fontSize: 14, fontWeight: '600' },
-  
-  content: { gap: 20 },
-  section: { gap: 5 },
-  label: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 16, lineHeight: 22 },
-  
-  mapButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 16, marginTop: 10 },
-  mapButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  
-  statsRow: { flexDirection: 'row', gap: 15, marginTop: 10 },
-  statItem: { flex: 1, padding: 15, borderRadius: 16, alignItems: 'center', gap: 5 },
-  statLabel: { fontSize: 12, fontWeight: '600' },
-  statValue: { fontSize: 18, fontWeight: 'bold' },
+	overlay: {
+		flex: 1,
+		backgroundColor: "rgba(0,0,0,0.7)",
+		justifyContent: "flex-end",
+	},
+	sheet: {
+		borderTopLeftRadius: 24,
+		borderTopRightRadius: 24,
+		padding: 24,
+		paddingBottom: 40,
+		maxHeight: "90%",
+	},
+	handle: {
+		width: 40,
+		height: 5,
+		backgroundColor: "#E0E0E0",
+		borderRadius: 10,
+		alignSelf: "center",
+		marginBottom: 20,
+	},
+	header: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+		marginBottom: 25,
+	},
+	titleRow: { flexDirection: "row", alignItems: "center", flex: 1, gap: 15 },
+	iconBox: {
+		width: 50,
+		height: 50,
+		borderRadius: 12,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	name: { fontSize: 22, fontWeight: "bold" },
+	distanceBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		marginTop: 4,
+	},
+	distanceText: { fontSize: 14, fontWeight: "600" },
+
+	content: { gap: 20 },
+	section: { gap: 5 },
+	label: {
+		fontSize: 13,
+		fontWeight: "600",
+		textTransform: "uppercase",
+		letterSpacing: 0.5,
+	},
+	value: { fontSize: 16, lineHeight: 22 },
+
+	mapButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingVertical: 16,
+		borderRadius: 16,
+		marginTop: 10,
+	},
+	mapButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+
+	statsRow: { flexDirection: "row", gap: 15, marginTop: 10 },
+	statItem: {
+		flex: 1,
+		padding: 15,
+		borderRadius: 16,
+		alignItems: "center",
+		gap: 5,
+	},
+	statLabel: { fontSize: 12, fontWeight: "600" },
+	statValue: { fontSize: 18, fontWeight: "bold" },
 });

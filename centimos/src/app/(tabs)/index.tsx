@@ -1,300 +1,346 @@
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert, TouchableOpacity, Keyboard } from 'react-native';
-import { ThemedView } from '@/components/themed-view';
-import { useThemeColor } from '@/hooks/use-theme-color';
-import { useState, useEffect, useCallback } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { getLatestExchangeRate, getUserProfile, searchProducts, Product } from '@/services/api';
-import { useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import { addListItem } from '@/services/lists';
-
+import { FontAwesome5 } from "@expo/vector-icons";
+import { useCameraPermissions } from "expo-camera";
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import {
+	Alert,
+	Keyboard,
+	RefreshControl,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ConverterSheet } from "@/components/home/ConverterSheet";
 // Import our new Lego blocks
-import { ExchangeRateCard } from '@/components/home/ExchangeRateCard';
-import { ScannerAction } from '@/components/home/ScannerAction';
-import { CameraModal } from '@/components/scanner/CameraModal';
-import { getProduct } from '@/services/api'; 
-import { ProductSheet } from '@/components/scanner/ProductSheet'; 
-import { ProfileSheet } from '@/components/home/ProfileSheet';
-import { validateGtin } from '@/services/validate';
-
+import { ExchangeRateCard } from "@/components/home/ExchangeRateCard";
 // NEW COMPONENTS
-import { ExchangeRateHistorySheet } from '@/components/home/ExchangeRateHistorySheet';
-import { ProductSearchSheet } from '@/components/home/ProductSearchSheet';
-import { ListSelectorModal } from '@/components/home/ListSelectorModal';
-import { ConverterSheet } from '@/components/home/ConverterSheet';
-import { QuickActions } from '@/components/home/QuickActions';
+import { ExchangeRateHistorySheet } from "@/components/home/ExchangeRateHistorySheet";
+import { ListSelectorModal } from "@/components/home/ListSelectorModal";
+import { ProductSearchSheet } from "@/components/home/ProductSearchSheet";
+import { ProfileSheet } from "@/components/home/ProfileSheet";
+import { QuickActions } from "@/components/home/QuickActions";
+import { ScannerAction } from "@/components/home/ScannerAction";
+import { CameraModal } from "@/components/scanner/CameraModal";
+import { ProductSheet } from "@/components/scanner/ProductSheet";
+import { ThemedView } from "@/components/themed-view";
+import { useAuth } from "@/context/AuthContext";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import {
+	getLatestExchangeRate,
+	getProduct,
+	getUserProfile,
+	type Product,
+} from "@/services/api";
+import { addListItem } from "@/services/lists";
+import { validateGtin } from "@/services/validate";
 
 export default function HomeScreen() {
-  const color = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'textMain');
-  const subTextColor = useThemeColor({}, 'textSecondary');
-  const cardColor = useThemeColor({}, 'surfaceLight'); 
-  const primaryColor = useThemeColor({}, 'primary');
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { logout } = useAuth();
+	const color = useThemeColor({}, "background");
+	const textColor = useThemeColor({}, "textMain");
+	const subTextColor = useThemeColor({}, "textSecondary");
+	const cardColor = useThemeColor({}, "surfaceLight");
+	const primaryColor = useThemeColor({}, "primary");
+	const insets = useSafeAreaInsets();
+	const _router = useRouter();
+	const { logout } = useAuth();
 
-  // State
-  const [rate, setRate] = useState<{rate_to_ves: string; source: string; recorded_at: string} | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [user, setUser] = useState<{full_name?: string; username: string; email: string} | null>(null);
-  const [profileVisible, setProfileVisible] = useState(false);
+	// State
+	const [rate, setRate] = useState<{
+		rate_to_ves: string;
+		source: string;
+		recorded_at: string;
+	} | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [refreshing, setRefreshing] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [user, setUser] = useState<{
+		full_name?: string;
+		username: string;
+		email: string;
+	} | null>(null);
+	const [profileVisible, setProfileVisible] = useState(false);
 
-  // Exchange History State
-  const [exchangeHistoryVisible, setExchangeHistoryVisible] = useState(false);
+	// Exchange History State
+	const [exchangeHistoryVisible, setExchangeHistoryVisible] = useState(false);
 
-  // Converter State
-  const [converterVisible, setConverterVisible] = useState(false);
+	// Converter State
+	const [converterVisible, setConverterVisible] = useState(false);
 
-  // Search Results State
-  const [searchResultsVisible, setSearchResultsVisible] = useState(false);
-  
-  // List Selection State
-  const [listSelectorVisible, setListSelectorVisible] = useState(false);
-  const [selectedProductForList, setSelectedProductForList] = useState<Product | null>(null);
+	// Search Results State
+	const [searchResultsVisible, setSearchResultsVisible] = useState(false);
 
-  // Camera State
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanMode, setScanMode] = useState<'search' | 'log'>('search');
-  const [permission, requestPermission] = useCameraPermissions();
+	// List Selection State
+	const [listSelectorVisible, setListSelectorVisible] = useState(false);
+	const [selectedProductForList, setSelectedProductForList] =
+		useState<Product | null>(null);
 
-  // NEW STATE FOR PRODUCT SHEET (Single result from barcode)
-  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
-  const [sheetVisible, setSheetVisible] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+	// Camera State
+	const [isScanning, setIsScanning] = useState(false);
+	const [scanMode, setScanMode] = useState<"search" | "log">("search");
+	const [permission, requestPermission] = useCameraPermissions();
 
-  const fetchData = async () => {
-    const [rateData, userData] = await Promise.all([
-      getLatestExchangeRate(),
-      getUserProfile()
-    ]);
+	// NEW STATE FOR PRODUCT SHEET (Single result from barcode)
+	const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
+	const [sheetVisible, setSheetVisible] = useState(false);
+	const [isSearching, setIsSearching] = useState(false);
+	const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
 
-    if (rateData) setRate(rateData);
-    if (userData) setUser(userData);
+	const fetchData = useCallback(async () => {
+		const [rateData, userData] = await Promise.all([
+			getLatestExchangeRate(),
+			getUserProfile(),
+		]);
 
-    setLoading(false);
-  };
+		if (rateData) setRate(rateData);
+		if (userData) setUser(userData);
 
-  useEffect(() => { fetchData(); }, []);
+		setLoading(false);
+	}, []);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
-  }, []);
+	useEffect(() => {
+		fetchData();
+	}, [fetchData]);
 
-  const handleLogout = async () => {
-    setProfileVisible(false);
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-      Alert.alert("Error", "Hubo un problema al cerrar sesión. Por favor intenta de nuevo.");
-    }
-  };
+	const onRefresh = useCallback(async () => {
+		setRefreshing(true);
+		await fetchData();
+		setRefreshing(false);
+	}, [fetchData]);
 
-  const handleStartScanning = async (mode: 'search' | 'log' = 'search') => {
-    setScanMode(mode);
-    if (!permission?.granted) {
-      const result = await requestPermission();
-      if (!result.granted) {
-        Alert.alert("Permiso requerido", "Se necesita acceso a la cámara para escanear productos.");
-        return;
-      }
-    }
-    setIsScanning(true);
-  };
+	const handleLogout = async () => {
+		setProfileVisible(false);
+		try {
+			await logout();
+		} catch (error) {
+			console.error("Logout error:", error);
+			Alert.alert(
+				"Error",
+				"Hubo un problema al cerrar sesión. Por favor intenta de nuevo.",
+			);
+		}
+	};
 
-  // --- REUSABLE SEARCH FUNCTION ---
-  const performSearch = async (barcode: string) => {
-    if (!barcode) return;
+	const handleStartScanning = async (mode: "search" | "log" = "search") => {
+		setScanMode(mode);
+		if (!permission?.granted) {
+			const result = await requestPermission();
+			if (!result.granted) {
+				Alert.alert(
+					"Permiso requerido",
+					"Se necesita acceso a la cámara para escanear productos.",
+				);
+				return;
+			}
+		}
+		setIsScanning(true);
+	};
 
-    // Check if the input looks like a barcode (8 or more digits, starting with a digit)
-    const isBarcode = /^\d{8,}$/.test(barcode);
+	// --- REUSABLE SEARCH FUNCTION ---
+	const performSearch = async (barcode: string) => {
+		if (!barcode) return;
 
-    if (isBarcode) {
-      if (!validateGtin(barcode)) {
-        Alert.alert("Código inválido", "Por favor ingresa un código de barras válido con el formato correcto.");
-        return;
-      }
-      // 1. Reset UI
-      Keyboard.dismiss();
-      setSheetVisible(true);
-      setIsSearching(true);
-      setLastScannedCode(barcode);
-      setScannedProduct(null);
+		// Check if the input looks like a barcode (8 or more digits, starting with a digit)
+		const isBarcode = /^\d{8,}$/.test(barcode);
 
-      // 2. API Call
-      try {
-        const product = await getProduct(barcode);
-        setScannedProduct(product);
-      } catch (error: any) {
-        console.error("Barcode search failed", error);
-      } finally {
-        setIsSearching(false);
-      }
-    } else {
-      // It's a text search (name, brand, etc.)
-      Keyboard.dismiss();
-      setSearchResultsVisible(true);
-    }
-  };
+		if (isBarcode) {
+			if (!validateGtin(barcode)) {
+				Alert.alert(
+					"Código inválido",
+					"Por favor ingresa un código de barras válido con el formato correcto.",
+				);
+				return;
+			}
+			// 1. Reset UI
+			Keyboard.dismiss();
+			setSheetVisible(true);
+			setIsSearching(true);
+			setLastScannedCode(barcode);
+			setScannedProduct(null);
 
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
-    setIsScanning(false);
-    performSearch(data);
-  };
+			// 2. API Call
+			try {
+				const product = await getProduct(barcode);
+				setScannedProduct(product);
+			} catch (error: unknown) {
+				console.error("Barcode search failed", error);
+			} finally {
+				setIsSearching(false);
+			}
+		} else {
+			// It's a text search (name, brand, etc.)
+			Keyboard.dismiss();
+			setSearchResultsVisible(true);
+		}
+	};
 
-  const handleCloseSheet = () => {
-    setSheetVisible(false);
-    setScannedProduct(null);
-  };
+	const handleBarCodeScanned = ({ data }: { data: string }) => {
+		setIsScanning(false);
+		performSearch(data);
+	};
 
-  const handleManualSubmit = () => {
-    performSearch(searchQuery);
-  };
+	const handleCloseSheet = () => {
+		setSheetVisible(false);
+		setScannedProduct(null);
+	};
 
-  const handleRescan = () => {
-    setSheetVisible(false);
-    setTimeout(() => setIsScanning(true), 300);
-  };
+	const handleManualSubmit = () => {
+		performSearch(searchQuery);
+	};
 
-  const handleProductSelect = (product: Product) => {
-    setSearchResultsVisible(false);
-    setSelectedProductForList(product);
-    setListSelectorVisible(true);
-  };
+	const handleRescan = () => {
+		setSheetVisible(false);
+		setTimeout(() => setIsScanning(true), 300);
+	};
 
-  const handleListSelect = async (listId: string) => {
-    if (!selectedProductForList) return;
-    
-    try {
-      await addListItem(listId, selectedProductForList.barcode, 1);
-      // Alert.alert("Éxito", `${selectedProductForList.name} agregado a la lista.`);
-      setListSelectorVisible(false);
-      setSelectedProductForList(null);
-    } catch (e) {
-      Alert.alert("Error", "No se pudo agregar el producto a la lista.");
-    }
-  };
+	const handleProductSelect = (product: Product) => {
+		setSearchResultsVisible(false);
+		setSelectedProductForList(product);
+		setListSelectorVisible(true);
+	};
 
-  return (
-    <ThemedView style={[styles.container, { backgroundColor: color, paddingTop: insets.top }]}>
-      
-      {/* 1. Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.appName, { color: primaryColor }]}>Céntimos</Text>
-          <Text style={[styles.greeting, { color: subTextColor }]}>Compras inteligentes</Text>
-        </View>
+	const handleListSelect = async (listId: string) => {
+		if (!selectedProductForList) return;
 
-        <TouchableOpacity
-          style={[styles.profileButton, { backgroundColor: cardColor }]}
-          onPress={() => setProfileVisible(true)}
-        >
-           {user?.full_name || user?.username ? (
-             <Text style={{fontWeight: 'bold', color: primaryColor}}>
-               {(user.full_name || user.username)?.charAt(0)}
-             </Text>
-           ) : (
-             <FontAwesome5 name="user" size={16} color={textColor} />
-           )}
-        </TouchableOpacity>
-      </View>
+		try {
+			await addListItem(listId, selectedProductForList.barcode, 1);
+			// Alert.alert("Éxito", `${selectedProductForList.name} agregado a la lista.`);
+			setListSelectorVisible(false);
+			setSelectedProductForList(null);
+		} catch {
+			Alert.alert("Error", "No se pudo agregar el producto a la lista.");
+		}
+	};
 
-      <ScrollView 
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {/* 2. Components */}
-        <ExchangeRateCard 
-          rate={rate} 
-          loading={loading} 
-          onPress={() => setExchangeHistoryVisible(true)}
-        />
+	return (
+		<ThemedView
+			style={[
+				styles.container,
+				{ backgroundColor: color, paddingTop: insets.top },
+			]}
+		>
+			{/* 1. Header */}
+			<View style={styles.header}>
+				<View>
+					<Text style={[styles.appName, { color: primaryColor }]}>
+						Céntimos
+					</Text>
+					<Text style={[styles.greeting, { color: subTextColor }]}>
+						Compras inteligentes
+					</Text>
+				</View>
 
-        <ScannerAction
-          onScanPress={() => handleStartScanning('search')}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSearchSubmit={handleManualSubmit}
-        />
+				<TouchableOpacity
+					style={[styles.profileButton, { backgroundColor: cardColor }]}
+					onPress={() => setProfileVisible(true)}
+				>
+					{user?.full_name || user?.username ? (
+						<Text style={{ fontWeight: "bold", color: primaryColor }}>
+							{(user.full_name || user.username)?.charAt(0)}
+						</Text>
+					) : (
+						<FontAwesome5 name="user" size={16} color={textColor} />
+					)}
+				</TouchableOpacity>
+			</View>
 
-        <QuickActions 
-          onLogPrice={() => handleStartScanning('log')}
-          onOpenConverter={() => setConverterVisible(true)}
-        />
-      </ScrollView>
+			<ScrollView
+				contentContainerStyle={styles.content}
+				refreshControl={
+					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+				}
+			>
+				{/* 2. Components */}
+				<ExchangeRateCard
+					rate={rate}
+					loading={loading}
+					onPress={() => setExchangeHistoryVisible(true)}
+				/>
 
-      <CameraModal
-        visible={isScanning}
-        onClose={() => setIsScanning(false)}
-        onBarcodeScanned={handleBarCodeScanned}
-      />
+				<ScannerAction
+					onScanPress={() => handleStartScanning("search")}
+					searchQuery={searchQuery}
+					onSearchChange={setSearchQuery}
+					onSearchSubmit={handleManualSubmit}
+				/>
 
-      <ProductSheet
-        visible={sheetVisible}
-        loading={isSearching}
-        product={scannedProduct}
-        barcode={lastScannedCode}
-        mode={scanMode}
-        onClose={handleCloseSheet}
-        onRescan={handleRescan}
-        onAddToList={handleProductSelect}
-      />
+				<QuickActions
+					onLogPrice={() => handleStartScanning("log")}
+					onOpenConverter={() => setConverterVisible(true)}
+				/>
+			</ScrollView>
 
-      <ProfileSheet
-        visible={profileVisible}
-        user={user}
-        onClose={() => setProfileVisible(false)}
-        onLogout={handleLogout}
-      />
+			<CameraModal
+				visible={isScanning}
+				onClose={() => setIsScanning(false)}
+				onBarcodeScanned={handleBarCodeScanned}
+			/>
 
-      {/* NEW SHEETS */}
-      <ExchangeRateHistorySheet 
-        visible={exchangeHistoryVisible}
-        onClose={() => setExchangeHistoryVisible(false)}
-      />
+			<ProductSheet
+				visible={sheetVisible}
+				loading={isSearching}
+				product={scannedProduct}
+				barcode={lastScannedCode}
+				mode={scanMode}
+				onClose={handleCloseSheet}
+				onRescan={handleRescan}
+				onAddToList={handleProductSelect}
+			/>
 
-      <ProductSearchSheet 
-        visible={searchResultsVisible}
-        query={searchQuery}
-        onClose={() => setSearchResultsVisible(false)}
-        onProductSelect={handleProductSelect}
-      />
+			<ProfileSheet
+				visible={profileVisible}
+				user={user}
+				onClose={() => setProfileVisible(false)}
+				onLogout={handleLogout}
+			/>
 
-      <ListSelectorModal 
-        visible={listSelectorVisible}
-        onClose={() => setListSelectorVisible(false)}
-        onSelect={handleListSelect}
-      />
+			{/* NEW SHEETS */}
+			<ExchangeRateHistorySheet
+				visible={exchangeHistoryVisible}
+				onClose={() => setExchangeHistoryVisible(false)}
+			/>
 
-      <ConverterSheet 
-        visible={converterVisible}
-        rate={rate ? parseFloat(rate.rate_to_ves) : 0}
-        onClose={() => setConverterVisible(false)}
-      />
+			<ProductSearchSheet
+				visible={searchResultsVisible}
+				query={searchQuery}
+				onClose={() => setSearchResultsVisible(false)}
+				onProductSelect={handleProductSelect}
+			/>
 
-    </ThemedView>
-  );
+			<ListSelectorModal
+				visible={listSelectorVisible}
+				onClose={() => setListSelectorVisible(false)}
+				onSelect={handleListSelect}
+			/>
+
+			<ConverterSheet
+				visible={converterVisible}
+				rate={rate ? parseFloat(rate.rate_to_ves) : 0}
+				onClose={() => setConverterVisible(false)}
+			/>
+		</ThemedView>
+	);
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: 20 },
-  header: { 
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', 
-    paddingHorizontal: 20, paddingBottom: 15 
-  },
-  appName: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
-  greeting: { fontSize: 13 },
-  profileButton: { 
-    width: 40, height: 40, borderRadius: 20, 
-    alignItems: 'center', justifyContent: 'center' 
-  },
+	container: { flex: 1 },
+	content: { padding: 20 },
+	header: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		paddingHorizontal: 20,
+		paddingBottom: 15,
+	},
+	appName: { fontSize: 22, fontWeight: "900", letterSpacing: -0.5 },
+	greeting: { fontSize: 13 },
+	profileButton: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		alignItems: "center",
+		justifyContent: "center",
+	},
 });

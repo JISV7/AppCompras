@@ -150,7 +150,7 @@ async def complete_list(
         if item.planned_price is not None:
             if not item.is_purchased:
                 item.is_purchased = True
-            
+
             # Use item's specific store if assigned, else use the list's completion store
             final_store_id = item.store_id or store_id
             if not item.store_id:

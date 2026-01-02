@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import desc, select, func
 from geoalchemy2 import Geometry
 
@@ -63,8 +63,7 @@ async def get_price_comparison(
     # Subquery to get the latest price log ID per store for this product
     latest_logs_sq = (
         select(
-            PriceLog.store_id,
-            func.max(PriceLog.recorded_at).label("max_recorded_at")
+            PriceLog.store_id, func.max(PriceLog.recorded_at).label("max_recorded_at")
         )
         .where(PriceLog.product_barcode == barcode)
         .group_by(PriceLog.store_id)
@@ -81,7 +80,11 @@ async def get_price_comparison(
             Store.name.label("store_name"),
             Store.address,
         )
-        .join(latest_logs_sq, (PriceLog.store_id == latest_logs_sq.c.store_id) & (PriceLog.recorded_at == latest_logs_sq.c.max_recorded_at))
+        .join(
+            latest_logs_sq,
+            (PriceLog.store_id == latest_logs_sq.c.store_id)
+            & (PriceLog.recorded_at == latest_logs_sq.c.max_recorded_at),
+        )
         .join(Store, PriceLog.store_id == Store.store_id)
         .where(PriceLog.product_barcode == barcode)
     )
@@ -89,7 +92,9 @@ async def get_price_comparison(
     if lat is not None and lon is not None:
         user_point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326).cast(Geometry)
         stmt = stmt.add_columns(
-            func.ST_Distance(Store.location.cast(Geometry), user_point, True).label("distance_meters")
+            func.ST_Distance(Store.location.cast(Geometry), user_point, True).label(
+                "distance_meters"
+            )
         )
         # Order by price (asc) then distance (asc)
         stmt = stmt.order_by(PriceLog.price.asc(), "distance_meters")
@@ -97,7 +102,7 @@ async def get_price_comparison(
         stmt = stmt.order_by(PriceLog.price.asc())
 
     result = await db.execute(stmt)
-    
+
     comparisons = []
     for row in result:
         comparison_dict = {
@@ -107,7 +112,7 @@ async def get_price_comparison(
             "store_id": row.store_id,
             "store_name": row.store_name,
             "address": row.address,
-            "distance_meters": getattr(row, "distance_meters", None)
+            "distance_meters": getattr(row, "distance_meters", None),
         }
         comparisons.append(PriceComparison(**comparison_dict))
 

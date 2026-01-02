@@ -1,781 +1,1143 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, Modal, Pressable, TextInput, ScrollView } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { useThemeColor } from '@/hooks/use-theme-color';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getListDetails, addListItem, deleteListItem, updateListItem, completeShoppingList, updateList, ShoppingList, ListItem } from '@/services/lists';
-import { getProduct, getLatestExchangeRate, getStores, searchStores, getNearbyStores } from '@/services/api';
-import { normalizeToGtin13 } from '@/services/validate';
-import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { SwipeableRow } from '@/components/common/SwipeableRow';
-import { ListItemSheet } from '@/components/lists/ListItemSheet';
-import { CameraModal } from '@/components/scanner/CameraModal';
-import { AddProductModal } from '@/components/lists/AddProductModal';
-import * as Location from 'expo-location';
+import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { AxiosError } from "axios";
+import * as Location from "expo-location";
+import { Stack, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import {
+	ActivityIndicator,
+	Alert,
+	FlatList,
+	Image,
+	Modal,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SwipeableRow } from "@/components/common/SwipeableRow";
+import { AddProductModal } from "@/components/lists/AddProductModal";
+import { ListItemSheet } from "@/components/lists/ListItemSheet";
+import { CameraModal } from "@/components/scanner/CameraModal";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import {
+	getLatestExchangeRate,
+	getNearbyStores,
+	getProduct,
+	getStores,
+	searchStores,
+} from "@/services/api";
+import {
+	addListItem,
+	completeShoppingList,
+	deleteListItem,
+	getListDetails,
+	type ListItem,
+	type ShoppingList,
+	updateList,
+	updateListItem,
+} from "@/services/lists";
+import { normalizeToGtin13 } from "@/services/validate";
 
 // Helper interface to combine List Item + Product Details
 interface EnrichedListItem extends ListItem {
-  productName?: string;
-  productImage?: string;
-  estimatedPrice?: number;
-  predictedPrice?: number;
-  storeName?: string;
+	productName?: string;
+	productImage?: string;
+	estimatedPrice?: number;
+	predictedPrice?: number;
+	storeName?: string;
 }
 
 interface Store {
-  store_id: string;
-  name: string;
-  address?: string;
+	store_id: string;
+	name: string;
+	address?: string;
 }
 
 export default function ListDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const insets = useSafeAreaInsets();
+	const { id } = useLocalSearchParams<{ id: string }>();
+	const insets = useSafeAreaInsets();
 
-  // Colors
-  const bgColor = useThemeColor({}, 'background');
-  const cardColor = useThemeColor({}, 'surfaceLight');
-  const textColor = useThemeColor({}, 'textMain');
-  const primaryColor = useThemeColor({}, 'primary');
-  const subTextColor = useThemeColor({}, 'textSecondary'); // Added
+	// Colors
+	const bgColor = useThemeColor({}, "background");
+	const cardColor = useThemeColor({}, "surfaceLight");
+	const textColor = useThemeColor({}, "textMain");
+	const primaryColor = useThemeColor({}, "primary");
+	const subTextColor = useThemeColor({}, "textSecondary"); // Added
 
-  // State
-  const [list, setList] = useState<ShoppingList | null>(null);
-  const [items, setItems] = useState<EnrichedListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalPrice, setTotalPrice] = useState(0);
-  const [selectedItem, setSelectedItem] = useState<EnrichedListItem | null>(null);
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+	// State
+	const [list, setList] = useState<ShoppingList | null>(null);
+	const [items, setItems] = useState<EnrichedListItem[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [totalPrice, setTotalPrice] = useState(0);
+	const [selectedItem, setSelectedItem] = useState<EnrichedListItem | null>(
+		null,
+	);
+	const [exchangeRate, setExchangeRate] = useState<number | null>(null);
 
-  // Actions
-  const [showActions, setShowActions] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [isManualAdd, setIsManualAdd] = useState(false); // New state for manual add modal
+	// Actions
+	const [showActions, setShowActions] = useState(false);
+	const [isScanning, setIsScanning] = useState(false);
+	const [isManualAdd, setIsManualAdd] = useState(false); // New state for manual add modal
 
-  // State for completing list
-  const [showCompleteModal, setShowCompleteModal] = useState(false);
-  const [availableStores, setAvailableStores] = useState<Store[]>([]);
-  const [selectedStoreForCompletion, setSelectedStoreForCompletion] = useState<string | null>(null);
-  const [completingList, setCompletingList] = useState(false);
+	// State for completing list
+	const [showCompleteModal, setShowCompleteModal] = useState(false);
+	const [availableStores, setAvailableStores] = useState<Store[]>([]);
+	const [selectedStoreForCompletion, setSelectedStoreForCompletion] = useState<
+		string | null
+	>(null);
+	const [completingList, setCompletingList] = useState(false);
 
-  // NEW: Store Search and Nearby State
-  const [storeSearchQuery, setStoreSearchQuery] = useState('');
-  const [storeSearchResults, setStoreSearchResults] = useState<Store[]>([]);
-  const [nearbyStores, setNearbyStores] = useState<Store[]>([]);
-  const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
-  const [searchingStores, setSearchingStores] = useState(false);
+	// NEW: Store Search and Nearby State
+	const [storeSearchQuery, setStoreSearchQuery] = useState("");
+	const [storeSearchResults, setStoreSearchResults] = useState<Store[]>([]);
+	const [nearbyStores, setNearbyStores] = useState<Store[]>([]);
+	const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
+	const [_searchingStores, setSearchingStores] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
+	const calculateTotal = useCallback((currentItems: EnrichedListItem[]) => {
+		const total = currentItems.reduce((sum, item) => {
+			const priceToUse = item.planned_price ?? item.estimatedPrice ?? 0;
+			return sum + item.quantity * priceToUse;
+		}, 0);
+		setTotalPrice(total);
+	}, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [listData, rateData, storesData] = await Promise.all([
-        getListDetails(id),
-        getLatestExchangeRate(),
-        getStores() // Fetch stores
-      ]);
+	const processItems = useCallback(
+		async (
+			listData: ShoppingList,
+			_rate: number | undefined,
+			storesData: Store[],
+		) => {
+			const enrichedItems = await Promise.all(
+				listData.items.map(async (item) => {
+					try {
+						const product = await getProduct(item.product_barcode);
+						const avgPrice = Number(product?.estimated_price_usd) || 0;
+						const predPrice = Number(product?.predicted_price_usd) || 0;
+						const store = storesData.find(
+							(s: Store) => s.store_id === item.store_id,
+						);
 
-      setList(listData);
-      if (rateData) setExchangeRate(rateData.rate_to_ves);
-      setAvailableStores(storesData); // Set available stores
+						return {
+							...item,
+							productName: product?.name || "Producto Desconocido",
+							productImage: product?.image_url,
+							estimatedPrice: avgPrice,
+							predictedPrice: predPrice,
+							storeName: store?.name,
+							added_at: item.added_at,
+							planned_price: item.planned_price,
+							is_purchased: item.is_purchased,
+							store_id: item.store_id,
+						};
+					} catch {
+						return {
+							...item,
+							productName: "Producto no encontrado",
+							estimatedPrice: 0,
+							predictedPrice: 0,
+						};
+					}
+				}),
+			);
 
-      await processItems(listData, rateData?.rate_to_ves, storesData);
+			// Sorting Logic
+			const sortedItems = enrichedItems.sort((a, b) => {
+				// 1. Purchased status (false first)
+				if (a.is_purchased !== b.is_purchased) {
+					return a.is_purchased ? 1 : -1;
+				}
 
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      Alert.alert("Error", "No se pudieron cargar los datos");
-    } finally {
-      setLoading(false);
-    }
-  };
+				// 2. If both are NOT purchased, sort by added_at DESC
+				if (!a.is_purchased) {
+					const dateA = new Date(a.added_at || 0).getTime();
+					const dateB = new Date(b.added_at || 0).getTime();
+					return dateB - dateA;
+				}
 
-  const processItems = async (listData: ShoppingList, rate: number | undefined, storesData: Store[]) => {
-    const enrichedItems = await Promise.all(
-      listData.items.map(async (item) => {
-        try {
-          const product = await getProduct(item.product_barcode);
-          const avgPrice = Number(product?.estimated_price_usd) || 0;
-          const predPrice = Number(product?.predicted_price_usd) || 0;
-          const store = storesData.find((s: any) => s.store_id === item.store_id);
+				// 3. If both are purchased, sort by productName ASC
+				return (a.productName || "").localeCompare(b.productName || "");
+			});
 
-          return {
-            ...item,
-            productName: product?.name || "Producto Desconocido",
-            productImage: product?.image_url,
-            estimatedPrice: avgPrice,
-            predictedPrice: predPrice,
-            storeName: store?.name,
-            added_at: item.added_at,
-            planned_price: item.planned_price,
-            is_purchased: item.is_purchased,
-            store_id: item.store_id,
-          };
-        } catch {
-          return { ...item, productName: "Producto no encontrado", estimatedPrice: 0, predictedPrice: 0 };
-        }
-      })
-    );
+			setItems(sortedItems);
+			calculateTotal(sortedItems);
+			return sortedItems; // Return the items
+		},
+		[calculateTotal],
+	);
 
-    // Sorting Logic
-    const sortedItems = enrichedItems.sort((a, b) => {
-      // 1. Purchased status (false first)
-      if (a.is_purchased !== b.is_purchased) {
-        return a.is_purchased ? 1 : -1;
-      }
+	const fetchData = useCallback(async () => {
+		setLoading(true);
+		try {
+			const [listData, rateData, storesData] = await Promise.all([
+				getListDetails(id),
+				getLatestExchangeRate(),
+				getStores(), // Fetch stores
+			]);
 
-      // 2. If both are NOT purchased, sort by added_at DESC
-      if (!a.is_purchased) {
-        const dateA = new Date(a.added_at || 0).getTime();
-        const dateB = new Date(b.added_at || 0).getTime();
-        return dateB - dateA;
-      }
+			setList(listData);
+			if (rateData) setExchangeRate(rateData.rate_to_ves);
+			setAvailableStores(storesData); // Set available stores
 
-      // 3. If both are purchased, sort by productName ASC
-      return (a.productName || "").localeCompare(b.productName || "");
-    });
+			await processItems(listData, rateData?.rate_to_ves, storesData);
+		} catch (error) {
+			console.error("Error fetching data:", error);
+			Alert.alert("Error", "No se pudieron cargar los datos");
+		} finally {
+			setLoading(false);
+		}
+	}, [id, processItems]);
 
-    setItems(sortedItems);
-    calculateTotal(sortedItems);
-    return sortedItems; // Return the items
-  };
+	useEffect(() => {
+		fetchData();
+	}, [fetchData]);
 
-  const calculateTotal = (currentItems: EnrichedListItem[]) => {
-    const total = currentItems.reduce((sum, item) => {
-      const priceToUse = item.planned_price ?? item.estimatedPrice ?? 0;
-      return sum + (item.quantity * priceToUse);
-    }, 0);
-    setTotalPrice(total);
-  };
+	const handleBarcodeScanned = async ({ data }: { data: string }) => {
+		if (list?.status === "COMPLETED") {
+			Alert.alert(
+				"Lista Finalizada",
+				"No se pueden agregar artículos a una lista finalizada.",
+			);
+			return;
+		}
+		setIsScanning(false);
+		setIsManualAdd(false); // Close manual modal if open (though logic passes data here)
 
-  const handleBarcodeScanned = async ({ data }: { data: string }) => {
-    if (list?.status === 'COMPLETED') {
-       Alert.alert("Lista Finalizada", "No se pueden agregar artículos a una lista finalizada.");
-       return;
-    }
-    setIsScanning(false);
-    setIsManualAdd(false); // Close manual modal if open (though logic passes data here)
+		try {
+			const normalizedBarcode = normalizeToGtin13(data);
+			await addListItem(id, normalizedBarcode, 1);
 
-    try {
-      const normalizedBarcode = normalizeToGtin13(data);
-      await addListItem(id, normalizedBarcode, 1);
-      
-      // Re-fetch data and ensure UI updates
-      await fetchData();
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        Alert.alert("Producto Desconocido", "Por favor crea este producto en la pestaña de Inicio primero.");
-      } else {
-        Alert.alert("Error", "No se pudo agregar el artículo.");
-      }
-    }
-  };
+			// Re-fetch data and ensure UI updates
+			await fetchData();
+		} catch (error: unknown) {
+			if (error instanceof AxiosError && error.response?.status === 404) {
+				Alert.alert(
+					"Producto Desconocido",
+					"Por favor crea este producto en la pestaña de Inicio primero.",
+				);
+			} else {
+				Alert.alert("Error", "No se pudo agregar el artículo.");
+			}
+		}
+	};
 
-  const handleManualAdd = () => {
-    setIsManualAdd(true);
-  };
+	const handleManualAdd = () => {
+		setIsManualAdd(true);
+	};
 
-  const handleRemoveItem = async (itemId: string) => {
-    const originalItems = [...items];
-    setItems(prev => prev.filter(i => i.item_id !== itemId));
-    calculateTotal(items.filter(i => i.item_id !== itemId));
+	const handleRemoveItem = async (itemId: string) => {
+		const originalItems = [...items];
+		setItems((prev) => prev.filter((i) => i.item_id !== itemId));
+		calculateTotal(items.filter((i) => i.item_id !== itemId));
 
-    try {
-      await deleteListItem(id, itemId);
-    } catch (e) {
-      setItems(originalItems);
-      calculateTotal(originalItems);
-      Alert.alert("Error", "No se pudo eliminar el artículo");
-    }
-  };
+		try {
+			await deleteListItem(id, itemId);
+		} catch (_e) {
+			setItems(originalItems);
+			calculateTotal(originalItems);
+			Alert.alert("Error", "No se pudo eliminar el artículo");
+		}
+	};
 
-  const handleCompleteListPress = async () => {
-    // Check if we can bypass the modal (all items already have a store)
-    const allItemsHaveStores = items.length > 0 && items.every(i => i.store_id);
-    
-    if (allItemsHaveStores) {
-      setCompletingList(true);
-      try {
-        // We use the first item's store as a placeholder for the API, 
-        // the backend will prioritize individual item stores.
-        await completeShoppingList(id, items[0].store_id!);
-        Alert.alert("Éxito", "¡Lista cerrada y precios registrados!");
-        fetchData();
-        return;
-      } catch (error) {
-        Alert.alert("Error", "No se pudo cerrar la lista.");
-        setCompletingList(false);
-        return;
-      } finally {
-        setCompletingList(false);
-      }
-    }
+	const handleCompleteListPress = async () => {
+		// Check if we can bypass the modal (all items already have a store)
+		const allItemsHaveStores =
+			items.length > 0 && items.every((i) => i.store_id);
 
-    // Reset states
-    setStoreSearchQuery('');
-    setStoreSearchResults([]);
-    setIsNearbyExpanded(false);
-    setSelectedStoreForCompletion(null);
-    setShowCompleteModal(true);
+		if (allItemsHaveStores && items[0]?.store_id) {
+			setCompletingList(true);
+			try {
+				// We use the first item's store as a placeholder for the API,
+				// the backend will prioritize individual item stores.
+				await completeShoppingList(id, items[0].store_id);
+				Alert.alert("Éxito", "¡Lista cerrada y precios registrados!");
+				fetchData();
+				return;
+			} catch (_error) {
+				Alert.alert("Error", "No se pudo cerrar la lista.");
+				setCompletingList(false);
+				return;
+			} finally {
+				setCompletingList(false);
+			}
+		}
 
-    // Fetch Nearby Stores
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({});
-        const nearby = await getNearbyStores(location.coords.latitude, location.coords.longitude);
-        setNearbyStores(nearby);
-        if (nearby.length > 0) {
-            setSelectedStoreForCompletion(nearby[0].store_id);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching nearby stores:", error);
-    }
-  };
+		// Reset states
+		setStoreSearchQuery("");
+		setStoreSearchResults([]);
+		setIsNearbyExpanded(false);
+		setSelectedStoreForCompletion(null);
+		setShowCompleteModal(true);
 
-  const handleStoreSearch = async (text: string) => {
-    setStoreSearchQuery(text);
-    if (text.length > 1) {
-      setSearchingStores(true);
-      try {
-        const results = await searchStores(text);
-        setStoreSearchResults(results);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setSearchingStores(false);
-      }
-    } else {
-      setStoreSearchResults([]);
-    }
-  };
+		// Fetch Nearby Stores
+		try {
+			const { status } = await Location.requestForegroundPermissionsAsync();
+			if (status === "granted") {
+				const location = await Location.getCurrentPositionAsync({});
+				const nearby = await getNearbyStores(
+					location.coords.latitude,
+					location.coords.longitude,
+				);
+				setNearbyStores(nearby);
+				if (nearby.length > 0) {
+					setSelectedStoreForCompletion(nearby[0].store_id);
+				}
+			}
+		} catch (error) {
+			console.error("Error fetching nearby stores:", error);
+		}
+	};
 
-  const handleConfirmCompleteList = async () => {
-    if (!selectedStoreForCompletion) {
-      Alert.alert("Tienda no seleccionada", "Por favor selecciona una tienda para finalizar la lista.");
-      return;
-    }
+	const handleStoreSearch = useCallback(async (text: string) => {
+		setStoreSearchQuery(text);
+		if (text.length > 1) {
+			setSearchingStores(true);
+			try {
+				const results = await searchStores(text);
+				setStoreSearchResults(results);
+			} catch (e) {
+				console.error(e);
+			} finally {
+				setSearchingStores(false);
+			}
+		} else {
+			setStoreSearchResults([]);
+		}
+	}, []);
 
-    setCompletingList(true);
-    try {
-      await completeShoppingList(id, selectedStoreForCompletion);
-      Alert.alert("Éxito", "¡Lista finalizada y precios registrados!");
-      setShowCompleteModal(false);
-      fetchData(); // Re-fetch data to update status and items
-    } catch (error) {
-      console.error("Error completing list:", error);
-      Alert.alert("Error", "No se pudo finalizar la lista.");
-    } finally {
-      setCompletingList(false);
-    }
-  };
+	const handleConfirmCompleteList = async () => {
+		if (!selectedStoreForCompletion) {
+			Alert.alert(
+				"Tienda no seleccionada",
+				"Por favor selecciona una tienda para finalizar la lista.",
+			);
+			return;
+		}
 
-  const handleUpdateItem = async (updatedFields: { quantity?: number; planned_price?: number | null; is_purchased?: boolean; store_id?: string | null }) => {
-    if (!selectedItem) return;
+		setCompletingList(true);
+		try {
+			await completeShoppingList(id, selectedStoreForCompletion);
+			Alert.alert("Éxito", "¡Lista finalizada y precios registrados!");
+			setShowCompleteModal(false);
+			fetchData(); // Re-fetch data to update status and items
+		} catch (error) {
+			console.error("Error completing list:", error);
+			Alert.alert("Error", "No se pudo finalizar la lista.");
+		} finally {
+			setCompletingList(false);
+		}
+	};
 
-    const originalItems = [...items];
-    const itemToUpdate = selectedItem;
+	const handleUpdateItem = useCallback(
+		async (updatedFields: {
+			quantity?: number;
+			planned_price?: number | null;
+			is_purchased?: boolean;
+			store_id?: string | null;
+		}) => {
+			if (!selectedItem) return;
 
-    // Remove nulls/undefineds for spread
-    const cleanUpdates: any = { ...updatedFields };
-    
-    // Enrich optimistic update with storeName if store_id changed
-    if (cleanUpdates.store_id !== undefined) {
-      if (cleanUpdates.store_id === null) {
-        cleanUpdates.storeName = undefined;
-      } else {
-        const store = availableStores.find(s => s.store_id === cleanUpdates.store_id);
-        if (store) cleanUpdates.storeName = store.name;
-      }
-    }
-    
-    // Optimistically update the UI
-    const updatedItems = items.map(i =>
-      i.item_id === itemToUpdate.item_id ? { ...i, ...cleanUpdates } : i
-    );
-    setItems(updatedItems);
-    calculateTotal(updatedItems);
-    setSelectedItem({ ...itemToUpdate, ...cleanUpdates });
+			const originalItems = [...items];
+			const itemToUpdate = selectedItem;
 
-    // API calls expect specific types, handle nulls if needed by service
-    // Ensure service handles null store_id or planned_price
-    const apiData: any = { ...updatedFields };
-    if (apiData.store_id === null) delete apiData.store_id; 
+			// Remove nulls/undefineds for spread
+			const cleanUpdates: Partial<EnrichedListItem> = {
+				quantity: updatedFields.quantity,
+				is_purchased: updatedFields.is_purchased,
+				planned_price: updatedFields.planned_price ?? undefined,
+				store_id: updatedFields.store_id ?? undefined,
+			};
 
-    try {
-      await updateListItem(id, itemToUpdate.item_id, apiData);
-      
-      // Fetch fresh data to ensure we have the latest state from server
-      const updatedListData = await getListDetails(id);
-      setList(updatedListData);
-      const newlyProcessedItems = await processItems(updatedListData, exchangeRate || undefined, availableStores);
+			// Enrich optimistic update with storeName if store_id changed
+			if (cleanUpdates.store_id !== undefined) {
+				if (cleanUpdates.store_id === null) {
+					cleanUpdates.storeName = undefined;
+				} else {
+					const store = availableStores.find(
+						(s) => s.store_id === cleanUpdates.store_id,
+					);
+					if (store) cleanUpdates.storeName = store.name;
+				}
+			}
 
-      // Keep selected item in sync with fresh data from server only if it's still open
-      if (newlyProcessedItems) {
-        const freshItem = newlyProcessedItems.find(i => i.item_id === itemToUpdate.item_id);
-        setSelectedItem(prev => (prev && prev.item_id === itemToUpdate.item_id ? freshItem || null : prev));
-      }
+			// Optimistically update the UI
+			const updatedItems = items.map((i) =>
+				i.item_id === itemToUpdate.item_id ? { ...i, ...cleanUpdates } : i,
+			);
+			setItems(updatedItems);
+			calculateTotal(updatedItems);
+			setSelectedItem({ ...itemToUpdate, ...cleanUpdates });
 
-      // Pro-Manual: Inform that list is ready but stay in the list
-      if (
-        updatedListData.status === 'ACTIVE' && 
-        updatedListData.items.length > 0 && 
-        updatedListData.items.every(i => i.is_purchased) &&
-        updatedFields.is_purchased === true
-      ) {
-        Alert.alert(
-          "¡Todo listo!",
-          "Has marcado todos los productos como comprados. Puedes cerrar la lista cuando estés listo usando el botón al final.",
-          [{ text: "Entendido" }]
-        );
-      }
-    } catch (e) {
-      console.error("Failed to update item:", e);
-      setItems(originalItems); // Revert on error
-      calculateTotal(originalItems);
-      setSelectedItem(itemToUpdate);
-      Alert.alert("Error", "No se pudo actualizar el artículo.");
-    }
-  };
+			// API calls expect specific types, handle nulls if needed by service
+			// Ensure service handles null store_id or planned_price
+			const apiData: {
+				quantity?: number;
+				is_purchased?: boolean;
+				planned_price?: number | null;
+				store_id?: string;
+			} = {
+				quantity: updatedFields.quantity,
+				is_purchased: updatedFields.is_purchased,
+				planned_price: updatedFields.planned_price,
+				store_id: updatedFields.store_id ?? undefined,
+			};
 
-  const handleReopenList = async () => {
-    try {
-      await updateList(id, { status: 'ACTIVE' });
-      Alert.alert("Éxito", "¡Lista Reabierta!");
-      fetchData();
-    } catch (error) {
-      Alert.alert("Error", "No se pudo reabrir la lista.");
-    }
-  };
-  
-  const renderItem = ({ item }: { item: EnrichedListItem }) => {
-    const itemPrice = item.planned_price ?? item.estimatedPrice ?? 0;
-    
-    return (
-      <SwipeableRow onDelete={() => handleRemoveItem(item.item_id)} height={80} bottomMargin={10}>
-        <TouchableOpacity
-          style={[styles.itemCard, { backgroundColor: cardColor, opacity: item.is_purchased ? 0.6 : 1 }]}
-          onPress={() => setSelectedItem(item)}
-          activeOpacity={0.9}
-        >
-          <View style={styles.itemImagePlaceholder}>
-            {item.productImage ? (
-              <Image source={{ uri: item.productImage }} style={styles.itemImage} />
-            ) : (
-              <FontAwesome5 name="box" size={20} color="#ccc" />
-            )}
-          </View>
-          <View style={{ flex: 1, paddingHorizontal: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text 
-                style={[
-                  styles.itemName, 
-                  { color: textColor, textDecorationLine: item.is_purchased ? 'line-through' : 'none' }
-                ]}
-                numberOfLines={1}
-              >
-                {item.productName}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                {item.store_id && (
-                  <MaterialIcons name="storefront" size={16} color="#2196F3" />
-                )}
-                {item.is_purchased && (
-                  <MaterialIcons name="check-circle" size={16} color={primaryColor} />
-                )}
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ color: '#888', fontSize: 12 }}>{item.product_barcode}</Text>
-              <Text style={{ color: primaryColor, fontWeight: 'bold', fontSize: 14 }}>
-                ${itemPrice.toFixed(2)}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.qtyBadge}>
-            <Text style={{ fontWeight: 'bold', color: primaryColor }}>x{item.quantity}</Text>
-          </View>
-        </TouchableOpacity>
-      </SwipeableRow>
-    );
-  };
+			if (updatedFields.store_id === null) {
+				delete apiData.store_id;
+			}
+			try {
+				await updateListItem(id, itemToUpdate.item_id, apiData);
 
-  return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
-      <Stack.Screen options={{ title: list?.name || 'Cargando...', headerBackTitle: 'Listas' }} />
+				// Fetch fresh data to ensure we have the latest state from server
+				const updatedListData = await getListDetails(id);
+				setList(updatedListData);
+				const newlyProcessedItems = await processItems(
+					updatedListData,
+					exchangeRate || undefined,
+					availableStores,
+				);
 
-      <View style={[styles.summary, { backgroundColor: cardColor }]}>
-        <Text style={{ color: '#888' }}>Total Estimado</Text>
-        <Text style={[styles.totalPrice, { color: (list?.budget_limit && totalPrice > list.budget_limit) ? 'red' : primaryColor }]}>
-          {list?.currency || "$"} {totalPrice.toFixed(2)}
-        </Text>
-      </View>
+				// Keep selected item in sync with fresh data from server only if it's still open
+				if (newlyProcessedItems) {
+					const freshItem = newlyProcessedItems.find(
+						(i: EnrichedListItem) => i.item_id === itemToUpdate.item_id,
+					);
+					setSelectedItem((prev) =>
+						prev && prev.item_id === itemToUpdate.item_id
+							? freshItem || null
+							: prev,
+					);
+				}
+				// Pro-Manual: Inform that list is ready but stay in the list
+				if (
+					updatedListData.status === "ACTIVE" &&
+					updatedListData.items.length > 0 &&
+					updatedListData.items.every((i) => i.is_purchased) &&
+					updatedFields.is_purchased === true
+				) {
+					Alert.alert(
+						"¡Todo listo!",
+						"Has marcado todos los productos como comprados. Puedes cerrar la lista cuando estés listo usando el botón al final.",
+						[{ text: "Entendido" }],
+					);
+				}
+			} catch (e) {
+				console.error("Failed to update item:", e);
+				setItems(originalItems); // Revert on error
+				calculateTotal(originalItems);
+				setSelectedItem(itemToUpdate);
+				Alert.alert("Error", "No se pudo actualizar el artículo.");
+			}
+		},
+		[
+			selectedItem,
+			items,
+			availableStores,
+			calculateTotal,
+			id,
+			processItems,
+			exchangeRate,
+		],
+	);
 
-      {loading ? (
-        <ActivityIndicator size="large" style={{ marginTop: 20 }} />
-      ) : (
-        <FlatList
-          data={items}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.item_id}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 15, paddingBottom: 120 + insets.bottom }}
-          ListFooterComponent={
-            items.length > 0 && items.every(i => i.is_purchased) && list?.status === 'ACTIVE' ? (
-              <TouchableOpacity 
-                style={[styles.finalizeShortcut, { backgroundColor: primaryColor }]}
-                onPress={handleCompleteListPress}
-              >
-                <MaterialIcons name="done-all" size={20} color="white" />
-                <Text style={styles.finalizeShortcutText}>Finalizar Lista</Text>
-              </TouchableOpacity>
-            ) : null
-          }
-          ListEmptyComponent={
-            <View style={{ alignItems: 'center', marginTop: 50 }}>
-              <FontAwesome5 name="clipboard-list" size={50} color="#ddd" />
-              <Text style={{ color: '#888', marginTop: 10 }}>La lista está vacía</Text>
-            </View>
-          }
-        />
-      )}
+	const handleReopenList = async () => {
+		try {
+			await updateList(id, { status: "ACTIVE" });
+			Alert.alert("Éxito", "¡Lista Reabierta!");
+			fetchData();
+		} catch (_error) {
+			Alert.alert("Error", "No se pudo reabrir la lista.");
+		}
+	};
 
-      {showActions && list?.status !== 'COMPLETED' && (
-        <View style={styles.actionMenu}>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleCompleteListPress}>
-            <MaterialIcons name="done-all" size={24} color="white" />
-            <Text style={styles.actionText}>Finalizar la Lista</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleManualAdd}>
-            <Ionicons name="keypad" size={24} color="white" />
-            <Text style={styles.actionText}>Escribir Código</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => { setShowActions(false); setIsScanning(true); }}>
-            <Ionicons name="scan" size={24} color="white" />
-            <Text style={styles.actionText}>Escanear</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+	const renderItem = ({ item }: { item: EnrichedListItem }) => {
+		const itemPrice = item.planned_price ?? item.estimatedPrice ?? 0;
 
-      {list?.status !== 'COMPLETED' && !selectedItem && (
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: primaryColor, transform: [{ rotate: showActions ? '45deg' : '0deg' }] }]}
-        onPress={() => setShowActions(!showActions)}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={32} color="white" />
-      </TouchableOpacity>
-      )}
+		return (
+			<SwipeableRow
+				onDelete={() => handleRemoveItem(item.item_id)}
+				height={80}
+				bottomMargin={10}
+			>
+				<TouchableOpacity
+					style={[
+						styles.itemCard,
+						{
+							backgroundColor: cardColor,
+							opacity: item.is_purchased ? 0.6 : 1,
+						},
+					]}
+					onPress={() => setSelectedItem(item)}
+					activeOpacity={0.9}
+				>
+					<View style={styles.itemImagePlaceholder}>
+						{item.productImage ? (
+							<Image
+								source={{ uri: item.productImage }}
+								style={styles.itemImage}
+							/>
+						) : (
+							<FontAwesome5 name="box" size={20} color="#ccc" />
+						)}
+					</View>
+					<View style={{ flex: 1, paddingHorizontal: 10 }}>
+						<View
+							style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+						>
+							<Text
+								style={[
+									styles.itemName,
+									{
+										color: textColor,
+										textDecorationLine: item.is_purchased
+											? "line-through"
+											: "none",
+									},
+								]}
+								numberOfLines={1}
+							>
+								{item.productName}
+							</Text>
+							<View
+								style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+							>
+								{item.store_id && (
+									<MaterialIcons name="storefront" size={16} color="#2196F3" />
+								)}
+								{item.is_purchased && (
+									<MaterialIcons
+										name="check-circle"
+										size={16}
+										color={primaryColor}
+									/>
+								)}
+							</View>
+						</View>
+						<View
+							style={{
+								flexDirection: "row",
+								justifyContent: "space-between",
+								alignItems: "center",
+							}}
+						>
+							<Text style={{ color: "#888", fontSize: 12 }}>
+								{item.product_barcode}
+							</Text>
+							<Text
+								style={{
+									color: primaryColor,
+									fontWeight: "bold",
+									fontSize: 14,
+								}}
+							>
+								${itemPrice.toFixed(2)}
+							</Text>
+						</View>
+					</View>
+					<View style={styles.qtyBadge}>
+						<Text style={{ fontWeight: "bold", color: primaryColor }}>
+							x{item.quantity}
+						</Text>
+					</View>
+				</TouchableOpacity>
+			</SwipeableRow>
+		);
+	};
 
-      {list?.status === 'COMPLETED' && (
-          <TouchableOpacity 
-            style={[styles.fab, { backgroundColor: '#FF9800', width: 'auto', paddingHorizontal: 24, borderRadius: 30, bottom: 60 }]}
-            onPress={handleReopenList}
-          >
-            <Text style={{color: 'white', fontWeight: 'bold'}}>Reabrir Lista</Text>
-          </TouchableOpacity>
-      )}
+	return (
+		<View style={[styles.container, { backgroundColor: bgColor }]}>
+			<Stack.Screen
+				options={{
+					title: list?.name || "Cargando...",
+					headerBackTitle: "Listas",
+				}}
+			/>
 
-      <CameraModal
-        visible={isScanning}
-        onClose={() => setIsScanning(false)}
-        onBarcodeScanned={handleBarcodeScanned}
-      />
+			<View style={[styles.summary, { backgroundColor: cardColor }]}>
+				<Text style={{ color: "#888" }}>Total Estimado</Text>
+				<Text
+					style={[
+						styles.totalPrice,
+						{
+							color:
+								list?.budget_limit && totalPrice > list.budget_limit
+									? "red"
+									: primaryColor,
+						},
+					]}
+				>
+					{list?.currency || "$"} {totalPrice.toFixed(2)}
+				</Text>
+			</View>
 
-      <AddProductModal
-        visible={isManualAdd}
-        onClose={() => setIsManualAdd(false)}
-        onSubmit={(code) => handleBarcodeScanned({ data: code })}
-      />
+			{loading ? (
+				<ActivityIndicator size="large" style={{ marginTop: 20 }} />
+			) : (
+				<FlatList
+					data={items}
+					renderItem={renderItem}
+					keyExtractor={(item) => item.item_id}
+					style={{ flex: 1 }}
+					contentContainerStyle={{
+						padding: 15,
+						paddingBottom: 120 + insets.bottom,
+					}}
+					ListFooterComponent={
+						items.length > 0 &&
+						items.every((i) => i.is_purchased) &&
+						list?.status === "ACTIVE" ? (
+							<TouchableOpacity
+								style={[
+									styles.finalizeShortcut,
+									{ backgroundColor: primaryColor },
+								]}
+								onPress={handleCompleteListPress}
+							>
+								<MaterialIcons name="done-all" size={20} color="white" />
+								<Text style={styles.finalizeShortcutText}>Finalizar Lista</Text>
+							</TouchableOpacity>
+						) : null
+					}
+					ListEmptyComponent={
+						<View style={{ alignItems: "center", marginTop: 50 }}>
+							<FontAwesome5 name="clipboard-list" size={50} color="#ddd" />
+							<Text style={{ color: "#888", marginTop: 10 }}>
+								La lista está vacía
+							</Text>
+						</View>
+					}
+				/>
+			)}
 
-      <ListItemSheet
-        visible={!!selectedItem}
-        item={selectedItem}
-        onClose={() => setSelectedItem(null)}
-        onUpdateItem={handleUpdateItem}
-        priceLocked={list?.status === 'COMPLETED'}
-        exchangeRate={exchangeRate}
-      />
+			{showActions && list?.status !== "COMPLETED" && (
+				<View style={styles.actionMenu}>
+					<TouchableOpacity
+						style={styles.actionBtn}
+						onPress={handleCompleteListPress}
+					>
+						<MaterialIcons name="done-all" size={24} color="white" />
+						<Text style={styles.actionText}>Finalizar la Lista</Text>
+					</TouchableOpacity>
+					<TouchableOpacity style={styles.actionBtn} onPress={handleManualAdd}>
+						<Ionicons name="keypad" size={24} color="white" />
+						<Text style={styles.actionText}>Escribir Código</Text>
+					</TouchableOpacity>
+					<TouchableOpacity
+						style={styles.actionBtn}
+						onPress={() => {
+							setShowActions(false);
+							setIsScanning(true);
+						}}
+					>
+						<Ionicons name="scan" size={24} color="white" />
+						<Text style={styles.actionText}>Escanear</Text>
+					</TouchableOpacity>
+				</View>
+			)}
 
-      {/* Complete List Modal */}
-      <Modal
-        visible={showCompleteModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowCompleteModal(false)}
-        statusBarTranslucent
-      >
-        <Pressable style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]} onPress={() => setShowCompleteModal(false)}>
-          <Pressable style={[styles.completeModalContent, { backgroundColor: cardColor }]} onPress={(e) => e.stopPropagation()}>
-            <Text style={[styles.completeModalTitle, { color: textColor }]}>Finalizar Lista</Text>
-            <Text style={[styles.completeModalSubtitle, { color: subTextColor }]}>
-              Marcar todos los artículos como comprados en una misma tienda.
-            </Text>
+			{list?.status !== "COMPLETED" && !selectedItem && (
+				<TouchableOpacity
+					style={[
+						styles.fab,
+						{
+							backgroundColor: primaryColor,
+							transform: [{ rotate: showActions ? "45deg" : "0deg" }],
+						},
+					]}
+					onPress={() => setShowActions(!showActions)}
+					activeOpacity={0.8}
+				>
+					<Ionicons name="add" size={32} color="white" />
+				</TouchableOpacity>
+			)}
 
-            <ScrollView style={{ width: '100%' }} showsVerticalScrollIndicator={false} nestedScrollEnabled>
-              {/* Store Selection */}
-              <View style={styles.storeSelectContainer}>
-                  <Text style={[styles.storeSelectLabel, { color: textColor }]}>Comprado en:</Text>
-                  
-                  {/* Search Bar */}
-                  <View style={[styles.modalSearchBar, { backgroundColor: bgColor }]}>
-                      <Ionicons name="search" size={18} color={subTextColor} />
-                      <TextInput
-                          style={[styles.modalSearchInput, { color: textColor }]}
-                          placeholder="Buscar nombre/dirección de tienda..."
-                          placeholderTextColor="#999"
-                          value={storeSearchQuery}
-                          onChangeText={handleStoreSearch}
-                      />
-                  </View>
+			{list?.status === "COMPLETED" && (
+				<TouchableOpacity
+					style={[
+						styles.fab,
+						{
+							backgroundColor: "#FF9800",
+							width: "auto",
+							paddingHorizontal: 24,
+							borderRadius: 30,
+							bottom: 60,
+						},
+					]}
+					onPress={handleReopenList}
+				>
+					<Text style={{ color: "white", fontWeight: "bold" }}>
+						Reabrir Lista
+					</Text>
+				</TouchableOpacity>
+			)}
 
-                  {/* Search Results / Selected Store */}
-                  {storeSearchResults.length > 0 ? (
-                      <View style={styles.searchResultsContainer}>
-                          {storeSearchResults.map(store => (
-                              <TouchableOpacity 
-                                  key={store.store_id} 
-                                  style={[styles.searchResultItem, selectedStoreForCompletion === store.store_id && { backgroundColor: `${primaryColor}22` }]}
-                                  onPress={() => setSelectedStoreForCompletion(store.store_id)}
-                              >
-                                  <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
-                                  <Text style={styles.searchResultAddress} numberOfLines={1}>{store.address}</Text>
-                              </TouchableOpacity>
-                          ))}
-                      </View>
-                  ) : selectedStoreForCompletion && !isNearbyExpanded ? (
-                      <View style={[styles.selectedStoreRow, { backgroundColor: `${primaryColor}11`, borderColor: primaryColor }]}>
-                          <Ionicons name="checkmark-circle" size={20} color={primaryColor} />
-                          <Text style={{ color: textColor, fontWeight: 'bold', marginLeft: 8 }}>
-                              {nearbyStores.find(s => s.store_id === selectedStoreForCompletion)?.name || 
-                               storeSearchResults.find(s => s.store_id === selectedStoreForCompletion)?.name || 
-                               "Tienda Seleccionada"}
-                          </Text>
-                      </View>
-                  ) : null}
+			<CameraModal
+				visible={isScanning}
+				onClose={() => setIsScanning(false)}
+				onBarcodeScanned={handleBarcodeScanned}
+			/>
 
-                  {/* Collapsible Nearby */}
-                  <TouchableOpacity 
-                      style={styles.nearbyToggle} 
-                      onPress={() => setIsNearbyExpanded(!isNearbyExpanded)}
-                  >
-                      <Text style={{ color: primaryColor, fontWeight: 'bold' }}>
-                          {isNearbyExpanded ? "Ocultar Cercanas" : "Mostrar Tiendas Cercanas"}
-                      </Text>
-                      <Ionicons name={isNearbyExpanded ? "chevron-up" : "chevron-down"} size={16} color={primaryColor} />
-                  </TouchableOpacity>
+			<AddProductModal
+				visible={isManualAdd}
+				onClose={() => setIsManualAdd(false)}
+				onSubmit={(code) => handleBarcodeScanned({ data: code })}
+			/>
 
-                  {isNearbyExpanded && (
-                      <View style={styles.nearbyList}>
-                          {nearbyStores.length > 0 ? (
-                              nearbyStores.map((store) => (
-                                  <TouchableOpacity
-                                      key={store.store_id}
-                                      style={[
-                                          styles.searchResultItem,
-                                          selectedStoreForCompletion === store.store_id && { backgroundColor: `${primaryColor}22` }
-                                      ]}
-                                      onPress={() => setSelectedStoreForCompletion(store.store_id)}
-                                  >
-                                      <Text style={[styles.searchResultText, { color: textColor }]}>{store.name}</Text>
-                                      <Text style={styles.searchResultAddress} numberOfLines={1}>
-                                          {store.address || "Dirección no disponible"}
-                                      </Text>
-                                  </TouchableOpacity>
-                              ))
-                          ) : (
-                              <Text style={{ color: subTextColor, textAlign: 'center', fontSize: 12 }}>No se encontraron tiendas cercanas.</Text>
-                          )}
-                      </View>
-                  )}
-              </View>
-            </ScrollView>
+			<ListItemSheet
+				visible={!!selectedItem}
+				item={selectedItem}
+				onClose={() => setSelectedItem(null)}
+				onUpdateItem={handleUpdateItem}
+				priceLocked={list?.status === "COMPLETED"}
+				exchangeRate={exchangeRate}
+			/>
 
-            <View style={{ width: '100%', marginTop: 10 }}>
-              <TouchableOpacity
-                style={[styles.completeButton, { backgroundColor: primaryColor, opacity: completingList || !selectedStoreForCompletion ? 0.7 : 1 }]}
-                onPress={handleConfirmCompleteList}
-                disabled={completingList || !selectedStoreForCompletion}
-              >
-                {completingList ? <ActivityIndicator color="white" /> : <Text style={styles.completeButtonText}>Confirmar Finalización</Text>}
-              </TouchableOpacity>
+			{/* Complete List Modal */}
+			<Modal
+				visible={showCompleteModal}
+				transparent
+				animationType="fade"
+				onRequestClose={() => setShowCompleteModal(false)}
+				statusBarTranslucent
+			>
+				<Pressable
+					style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.7)" }]}
+					onPress={() => setShowCompleteModal(false)}
+				>
+					<Pressable
+						style={[
+							styles.completeModalContent,
+							{ backgroundColor: cardColor },
+						]}
+						onPress={(e) => e.stopPropagation()}
+					>
+						<Text style={[styles.completeModalTitle, { color: textColor }]}>
+							Finalizar Lista
+						</Text>
+						<Text
+							style={[styles.completeModalSubtitle, { color: subTextColor }]}
+						>
+							Marcar todos los artículos como comprados en una misma tienda.
+						</Text>
 
-              <TouchableOpacity
-                style={styles.cancelCompleteButton}
-                onPress={() => setShowCompleteModal(false)}
-                disabled={completingList}
-              >
-                <Text style={[styles.cancelCompleteButtonText, { color: subTextColor }]}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
+						<ScrollView
+							style={{ width: "100%" }}
+							showsVerticalScrollIndicator={false}
+							nestedScrollEnabled
+						>
+							{/* Store Selection */}
+							<View style={styles.storeSelectContainer}>
+								<Text style={[styles.storeSelectLabel, { color: textColor }]}>
+									Comprado en:
+								</Text>
 
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </View>
-  );
+								{/* Search Bar */}
+								<View
+									style={[styles.modalSearchBar, { backgroundColor: bgColor }]}
+								>
+									<Ionicons name="search" size={18} color={subTextColor} />
+									<TextInput
+										style={[styles.modalSearchInput, { color: textColor }]}
+										placeholder="Buscar nombre/dirección de tienda..."
+										placeholderTextColor="#999"
+										value={storeSearchQuery}
+										onChangeText={handleStoreSearch}
+									/>
+								</View>
+
+								{/* Search Results / Selected Store */}
+								{storeSearchResults.length > 0 ? (
+									<View style={styles.searchResultsContainer}>
+										{storeSearchResults.map((store) => (
+											<TouchableOpacity
+												key={store.store_id}
+												style={[
+													styles.searchResultItem,
+													selectedStoreForCompletion === store.store_id && {
+														backgroundColor: `${primaryColor}22`,
+													},
+												]}
+												onPress={() =>
+													setSelectedStoreForCompletion(store.store_id)
+												}
+											>
+												<Text
+													style={[
+														styles.searchResultText,
+														{ color: textColor },
+													]}
+												>
+													{store.name}
+												</Text>
+												<Text
+													style={styles.searchResultAddress}
+													numberOfLines={1}
+												>
+													{store.address}
+												</Text>
+											</TouchableOpacity>
+										))}
+									</View>
+								) : selectedStoreForCompletion && !isNearbyExpanded ? (
+									<View
+										style={[
+											styles.selectedStoreRow,
+											{
+												backgroundColor: `${primaryColor}11`,
+												borderColor: primaryColor,
+											},
+										]}
+									>
+										<Ionicons
+											name="checkmark-circle"
+											size={20}
+											color={primaryColor}
+										/>
+										<Text
+											style={{
+												color: textColor,
+												fontWeight: "bold",
+												marginLeft: 8,
+											}}
+										>
+											{nearbyStores.find(
+												(s) => s.store_id === selectedStoreForCompletion,
+											)?.name ||
+												storeSearchResults.find(
+													(s) => s.store_id === selectedStoreForCompletion,
+												)?.name ||
+												"Tienda Seleccionada"}
+										</Text>
+									</View>
+								) : null}
+
+								{/* Collapsible Nearby */}
+								<TouchableOpacity
+									style={styles.nearbyToggle}
+									onPress={() => setIsNearbyExpanded(!isNearbyExpanded)}
+								>
+									<Text style={{ color: primaryColor, fontWeight: "bold" }}>
+										{isNearbyExpanded
+											? "Ocultar Cercanas"
+											: "Mostrar Tiendas Cercanas"}
+									</Text>
+									<Ionicons
+										name={isNearbyExpanded ? "chevron-up" : "chevron-down"}
+										size={16}
+										color={primaryColor}
+									/>
+								</TouchableOpacity>
+
+								{isNearbyExpanded && (
+									<View style={styles.nearbyList}>
+										{nearbyStores.length > 0 ? (
+											nearbyStores.map((store) => (
+												<TouchableOpacity
+													key={store.store_id}
+													style={[
+														styles.searchResultItem,
+														selectedStoreForCompletion === store.store_id && {
+															backgroundColor: `${primaryColor}22`,
+														},
+													]}
+													onPress={() =>
+														setSelectedStoreForCompletion(store.store_id)
+													}
+												>
+													<Text
+														style={[
+															styles.searchResultText,
+															{ color: textColor },
+														]}
+													>
+														{store.name}
+													</Text>
+													<Text
+														style={styles.searchResultAddress}
+														numberOfLines={1}
+													>
+														{store.address || "Dirección no disponible"}
+													</Text>
+												</TouchableOpacity>
+											))
+										) : (
+											<Text
+												style={{
+													color: subTextColor,
+													textAlign: "center",
+													fontSize: 12,
+												}}
+											>
+												No se encontraron tiendas cercanas.
+											</Text>
+										)}
+									</View>
+								)}
+							</View>
+						</ScrollView>
+
+						<View style={{ width: "100%", marginTop: 10 }}>
+							<TouchableOpacity
+								style={[
+									styles.completeButton,
+									{
+										backgroundColor: primaryColor,
+										opacity:
+											completingList || !selectedStoreForCompletion ? 0.7 : 1,
+									},
+								]}
+								onPress={handleConfirmCompleteList}
+								disabled={completingList || !selectedStoreForCompletion}
+							>
+								{completingList ? (
+									<ActivityIndicator color="white" />
+								) : (
+									<Text style={styles.completeButtonText}>
+										Confirmar Finalización
+									</Text>
+								)}
+							</TouchableOpacity>
+
+							<TouchableOpacity
+								style={styles.cancelCompleteButton}
+								onPress={() => setShowCompleteModal(false)}
+								disabled={completingList}
+							>
+								<Text
+									style={[
+										styles.cancelCompleteButtonText,
+										{ color: subTextColor },
+									]}
+								>
+									Cancelar
+								</Text>
+							</TouchableOpacity>
+						</View>
+					</Pressable>
+				</Pressable>
+			</Modal>
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  summary: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  totalPrice: { fontSize: 24, fontWeight: '900' },
+	container: { flex: 1 },
+	summary: {
+		padding: 20,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		borderBottomWidth: 1,
+		borderBottomColor: "#eee",
+	},
+	totalPrice: { fontSize: 24, fontWeight: "900" },
 
-  itemCard: { flexDirection: 'row', padding: 12, borderRadius: 12, marginBottom: 10, alignItems: 'center' },
-  itemImagePlaceholder: { width: 50, height: 50, borderRadius: 8, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center' },
-  itemImage: { width: 50, height: 50, borderRadius: 8 },
-  itemName: { fontWeight: '600', fontSize: 16, marginBottom: 4 },
-  qtyBadge: { backgroundColor: '#E3F2FD', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+	itemCard: {
+		flexDirection: "row",
+		padding: 12,
+		borderRadius: 12,
+		marginBottom: 10,
+		alignItems: "center",
+	},
+	itemImagePlaceholder: {
+		width: 50,
+		height: 50,
+		borderRadius: 8,
+		backgroundColor: "#f0f0f0",
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	itemImage: { width: 50, height: 50, borderRadius: 8 },
+	itemName: { fontWeight: "600", fontSize: 16, marginBottom: 4 },
+	qtyBadge: {
+		backgroundColor: "#E3F2FD",
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 8,
+	},
 
-  fab: { position: 'absolute', bottom: 60, right: 30, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, elevation: 5, zIndex: 10 },
+	fab: {
+		position: "absolute",
+		bottom: 60,
+		right: 30,
+		width: 60,
+		height: 60,
+		borderRadius: 30,
+		alignItems: "center",
+		justifyContent: "center",
+		shadowColor: "#000",
+		shadowOpacity: 0.3,
+		shadowRadius: 5,
+		elevation: 5,
+		zIndex: 10,
+	},
 
-  actionMenu: { position: 'absolute', bottom: 130, right: 30, gap: 12, alignItems: 'flex-end', zIndex: 10 },
-  actionBtn: { flexDirection: 'row', backgroundColor: '#455A64', padding: 12, borderRadius: 25, alignItems: 'center', gap: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 },
-  actionText: { color: 'white', fontWeight: 'bold' },
+	actionMenu: {
+		position: "absolute",
+		bottom: 130,
+		right: 30,
+		gap: 12,
+		alignItems: "flex-end",
+		zIndex: 10,
+	},
+	actionBtn: {
+		flexDirection: "row",
+		backgroundColor: "#455A64",
+		padding: 12,
+		borderRadius: 25,
+		alignItems: "center",
+		gap: 10,
+		shadowColor: "#000",
+		shadowOpacity: 0.2,
+		shadowRadius: 4,
+		elevation: 4,
+	},
+	actionText: { color: "white", fontWeight: "bold" },
 
-  // Complete List Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  completeModalContent: {
-    width: '90%',
-    maxWidth: 400,
-    maxHeight: '80%',
-    borderRadius: 24,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  completeModalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  completeModalSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 15,
-    lineHeight: 20,
-  },
-  storeSelectContainer: {
-    width: '100%',
-    paddingBottom: 10,
-  },
-  storeSelectLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  storeOptionContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  completeButton: {
-    width: '100%',
-    paddingVertical: 15,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  completeButtonText: {
-    color: 'white',
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
-  cancelCompleteButton: {
-    paddingVertical: 8,
-  },
-  cancelCompleteButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  modalSearchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  modalSearchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 14,
-  },
-  searchResultsContainer: {
-    marginBottom: 12,
-  },
-  searchResultItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    borderRadius: 8,
-  },
-  searchResultText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  searchResultAddress: {
-    fontSize: 11,
-    color: '#888',
-  },
-  selectedStoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 10,
-  },
-  nearbyToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 8,
-  },
-  nearbyList: {
-    marginTop: 10,
-    marginBottom: 15,
-    gap: 8,
-  },
-  finalizeShortcut: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 18,
-    borderRadius: 16,
-    marginTop: 20,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  finalizeShortcutText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 17,
-  },
+	// Complete List Modal Styles
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: "rgba(0,0,0,0.7)",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	completeModalContent: {
+		width: "90%",
+		maxWidth: 400,
+		maxHeight: "80%",
+		borderRadius: 24,
+		padding: 20,
+		alignItems: "center",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.3,
+		shadowRadius: 5,
+		elevation: 8,
+	},
+	completeModalTitle: {
+		fontSize: 22,
+		fontWeight: "bold",
+		marginBottom: 8,
+	},
+	completeModalSubtitle: {
+		fontSize: 14,
+		textAlign: "center",
+		marginBottom: 15,
+		lineHeight: 20,
+	},
+	storeSelectContainer: {
+		width: "100%",
+		paddingBottom: 10,
+	},
+	storeSelectLabel: {
+		fontSize: 16,
+		fontWeight: "600",
+		marginBottom: 12,
+		textAlign: "center",
+	},
+	storeOptionContainer: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "center",
+		gap: 10,
+	},
+	completeButton: {
+		width: "100%",
+		paddingVertical: 15,
+		borderRadius: 16,
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 8,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.2,
+		shadowRadius: 3,
+		elevation: 5,
+	},
+	completeButtonText: {
+		color: "white",
+		fontSize: 17,
+		fontWeight: "bold",
+	},
+	cancelCompleteButton: {
+		paddingVertical: 8,
+	},
+	cancelCompleteButtonText: {
+		fontSize: 15,
+		fontWeight: "500",
+	},
+	modalSearchBar: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 12,
+		borderRadius: 14,
+		marginBottom: 12,
+		borderWidth: 1,
+		borderColor: "#eee",
+	},
+	modalSearchInput: {
+		flex: 1,
+		marginLeft: 8,
+		fontSize: 14,
+	},
+	searchResultsContainer: {
+		marginBottom: 12,
+	},
+	searchResultItem: {
+		padding: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: "#f0f0f0",
+		borderRadius: 8,
+	},
+	searchResultText: {
+		fontSize: 14,
+		fontWeight: "600",
+	},
+	searchResultAddress: {
+		fontSize: 11,
+		color: "#888",
+	},
+	selectedStoreRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 12,
+		borderRadius: 12,
+		borderWidth: 1,
+		marginBottom: 10,
+	},
+	nearbyToggle: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 5,
+		paddingVertical: 8,
+	},
+	nearbyList: {
+		marginTop: 10,
+		marginBottom: 15,
+		gap: 8,
+	},
+	finalizeShortcut: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		padding: 18,
+		borderRadius: 16,
+		marginTop: 20,
+		gap: 12,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 3,
+	},
+	finalizeShortcutText: {
+		color: "white",
+		fontWeight: "bold",
+		fontSize: 17,
+	},
 });
