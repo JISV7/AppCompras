@@ -74,27 +74,40 @@ export default function ListsScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: ShoppingList }) => (
-    <SwipeableRow onDelete={() => handleRemoveList(item.list_id)} height={80} bottomMargin={16}>
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: cardColor }]}
-        onPress={() => router.push(`/lists/${item.list_id}`)}
-        activeOpacity={0.9}
-      >
-        <View style={styles.cardIcon}>
-          <MaterialIcons name="shopping-basket" size={24} color={primaryColor} />
-        </View>
-        <View style={styles.cardContent}>
-          <Text style={[styles.cardTitle, { color: textColor }]}>{item.name}</Text>
-          <Text style={styles.cardSubtitle}>
-            {item.items?.length || 0} artículos • {item.status}
-            {item.budget_limit ? ` • ${item.currency}${item.budget_limit}` : ''}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="#ccc" />
-      </TouchableOpacity>
-    </SwipeableRow>
-  );
+  const renderItem = ({ item }: { item: ShoppingList }) => {
+    const isReadyToClose = item.status === 'ACTIVE' && 
+                          item.items?.length > 0 && 
+                          item.items.every(i => i.is_purchased);
+
+    return (
+      <SwipeableRow onDelete={() => handleRemoveList(item.list_id)} height={80} bottomMargin={16}>
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: cardColor }]}
+          onPress={() => router.push(`/lists/${item.list_id}`)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.cardIcon}>
+            <MaterialIcons 
+              name="shopping-basket" 
+              size={24} 
+              color={isReadyToClose ? '#FF5252' : primaryColor} 
+            />
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={[styles.cardTitle, { color: textColor }]}>{item.name}</Text>
+            <Text style={styles.cardSubtitle}>
+              {item.items?.length || 0} artículos • {item.status}
+              {item.budget_limit ? ` • ${item.currency}${item.budget_limit}` : ''}
+            </Text>
+          </View>
+          {isReadyToClose && (
+             <MaterialIcons name="notifications-active" size={20} color="#FF5252" style={{ marginRight: 10 }} />
+          )}
+          <Ionicons name="chevron-forward" size={20} color="#ccc" />
+        </TouchableOpacity>
+      </SwipeableRow>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor, paddingTop: insets.top }]}>

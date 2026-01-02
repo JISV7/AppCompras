@@ -60,6 +60,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
     useEffect(() => {
         if (visible) {
+            saveLock.current = false; // Reset lock
             setIsEditingQty(false);
             setIsEditingPrice(false);
             setIsEditingPriceBs(false);
@@ -134,6 +135,20 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
         }
     };
 
+    const handlePricePress = () => {
+        if (priceLocked) return Alert.alert("Lista Finalizada", "No se pueden editar precios en una lista ya finalizada.");
+        if (isPurchasedState) return Alert.alert("Ítem Comprado", "Desmarca como comprado para editar el precio.");
+        saveLock.current = false;
+        setIsEditingPrice(true);
+    };
+
+    const handlePriceBsPress = () => {
+        if (priceLocked) return Alert.alert("Lista Finalizada", "No se pueden editar precios en una lista ya finalizada.");
+        if (isPurchasedState) return Alert.alert("Ítem Comprado", "Desmarca como comprado para editar el precio.");
+        saveLock.current = false;
+        setIsEditingPriceBs(true);
+    };
+
     const handlePriceChange = (text: string) => {
         if (text === '') { setPriceValue(''); setPriceBsValue(''); return; }
         if (!/^\d*\.?\d*$/.test(text)) return;
@@ -152,17 +167,22 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
     const handleSavePrice = () => {
         if (saveLock.current) return;
-        if (priceValue === '' || priceValue === '0') {
-             saveLock.current = true;
-             onUpdateItem?.({ planned_price: null });
+        
+        const price = parseFloat(priceValue);
+        const originalPrice = item.planned_price ?? item.estimatedPrice ?? 0;
+
+        if (priceValue === '' || priceValue === '0' || isNaN(price)) {
+             if (item.planned_price !== null && item.planned_price !== undefined) {
+                saveLock.current = true;
+                onUpdateItem?.({ planned_price: null });
+             }
              setIsEditingPrice(false);
              setIsEditingPriceBs(false);
              return;
         }
-        const price = parseFloat(priceValue);
-        if (!isNaN(price) && price >= 0) {
-            const originalPrice = item.planned_price ?? item.estimatedPrice ?? 0;
-            if (Math.abs(price - originalPrice) > 0.009) { 
+
+        if (price >= 0) {
+            if (Math.abs(price - originalPrice) > 0.0001) { 
                 saveLock.current = true;
                 onUpdateItem?.({ planned_price: price });
             }
@@ -176,12 +196,14 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
     const handleTogglePurchased = (newValue: boolean) => {
         setIsPurchasedState(newValue);
+        saveLock.current = false;
         onUpdateItem?.({ is_purchased: newValue, store_id: selectedStoreId });
     };
 
     const handleSelectStore = (store: any) => {
         setSelectedStoreId(store.store_id);
         setStoreSelectorVisible(false);
+        saveLock.current = false;
         onUpdateItem?.({ store_id: store.store_id });
     };
 
@@ -261,7 +283,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                 <View style={styles.gridRow}>
                                     <TouchableOpacity
                                         style={[styles.statBox, { backgroundColor: '#E3F2FD', borderColor: primaryColor, borderWidth: 1 }]}
-                                        onPress={() => !priceLocked && !isPurchasedState && setIsEditingPrice(true)}
+                                        onPress={handlePricePress}
                                         activeOpacity={0.8}
                                     >
                                         <Text style={styles.statLabel}>Precio ($)</Text>
@@ -290,7 +312,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
                                     <TouchableOpacity
                                         style={[styles.statBox, { backgroundColor: '#E3F2FD', borderColor: primaryColor, borderWidth: 1 }]}
-                                        onPress={() => !priceLocked && !isPurchasedState && setIsEditingPriceBs(true)}
+                                        onPress={handlePriceBsPress}
                                         activeOpacity={0.8}
                                     >
                                         <Text style={styles.statLabel}>Precio (Bs)</Text>
@@ -318,6 +340,16 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                     </TouchableOpacity>
                                 </View>
                             </View>
+
+                            {/* Store Reminder Hint */}
+                            {item.planned_price !== null && item.planned_price !== undefined && !item.store_id && (
+                                <View style={styles.hintBox}>
+                                    <Ionicons name="information-circle" size={16} color="#0277BD" />
+                                    <Text style={styles.hintText}>
+                                        Selecciona una tienda abajo para registrar este precio en tu historial comparativo.
+                                    </Text>
+                                </View>
+                            )}
 
                             {/* Comparison Section */}
                             <Text style={[styles.sectionTitle, { color: textColor, marginTop: 10, marginBottom: 15 }]}>Comparativa de precios</Text>
@@ -407,5 +439,22 @@ const styles = StyleSheet.create({
     priceText: { fontSize: 16, fontWeight: 'bold' },
     bestPriceBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
     bestPriceText: { color: '#2E7D32', fontSize: 8, fontWeight: 'bold' },
-    emptyBox: { padding: 20, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16 }
+    emptyBox: { padding: 20, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16 },
+    hintBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E1F5FE',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 20,
+        gap: 10,
+        borderWidth: 1,
+        borderColor: '#B3E5FC'
+    },
+    hintText: {
+        color: '#0277BD',
+        fontSize: 13,
+        flex: 1,
+        lineHeight: 18
+    }
 });

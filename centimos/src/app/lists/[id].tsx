@@ -139,6 +139,7 @@ export default function ListDetailScreen() {
 
     setItems(sortedItems);
     calculateTotal(sortedItems);
+    return sortedItems; // Return the items
   };
 
   const calculateTotal = (currentItems: EnrichedListItem[]) => {
@@ -160,8 +161,9 @@ export default function ListDetailScreen() {
     try {
       const normalizedBarcode = normalizeToGtin13(data);
       await addListItem(id, normalizedBarcode, 1);
-      // Alert.alert("Agregado", `¡Producto ${data} agregado!`);
-      fetchData();
+      
+      // Re-fetch data and ensure UI updates
+      await fetchData();
     } catch (error: any) {
       if (error.response?.status === 404) {
         Alert.alert("Producto Desconocido", "Por favor crea este producto en la pestaña de Inicio primero.");
@@ -190,6 +192,27 @@ export default function ListDetailScreen() {
   };
 
   const handleCompleteListPress = async () => {
+    // Check if we can bypass the modal (all items already have a store)
+    const allItemsHaveStores = items.length > 0 && items.every(i => i.store_id);
+    
+    if (allItemsHaveStores) {
+      setCompletingList(true);
+      try {
+        // We use the first item's store as a placeholder for the API, 
+        // the backend will prioritize individual item stores.
+        await completeShoppingList(id, items[0].store_id!);
+        Alert.alert("Éxito", "¡Lista cerrada y precios registrados!");
+        fetchData();
+        return;
+      } catch (error) {
+        Alert.alert("Error", "No se pudo cerrar la lista.");
+        setCompletingList(false);
+        return;
+      } finally {
+        setCompletingList(false);
+      }
+    }
+
     // Reset states
     setStoreSearchQuery('');
     setStoreSearchResults([]);
@@ -258,7 +281,16 @@ export default function ListDetailScreen() {
 
     // Remove nulls/undefineds for spread
     const cleanUpdates: any = { ...updatedFields };
-    // if store_id is null, it means we clear it.
+    
+    // Enrich optimistic update with storeName if store_id changed
+    if (cleanUpdates.store_id !== undefined) {
+      if (cleanUpdates.store_id === null) {
+        cleanUpdates.storeName = undefined;
+      } else {
+        const store = availableStores.find(s => s.store_id === cleanUpdates.store_id);
+        if (store) cleanUpdates.storeName = store.name;
+      }
+    }
     
     // Optimistically update the UI
     const updatedItems = items.map(i =>
@@ -271,12 +303,35 @@ export default function ListDetailScreen() {
     // API calls expect specific types, handle nulls if needed by service
     // Ensure service handles null store_id or planned_price
     const apiData: any = { ...updatedFields };
-    if (apiData.store_id === null) delete apiData.store_id; // or pass null if backend supports it. backend supports optional, so let's check service.
+    if (apiData.store_id === null) delete apiData.store_id; 
 
     try {
       await updateListItem(id, itemToUpdate.item_id, apiData);
-      // Re-fetch list to ensure consistency and refresh calculated totals/statuses from backend
-      fetchData();
+      
+      // Fetch fresh data to ensure we have the latest state from server
+      const updatedListData = await getListDetails(id);
+      setList(updatedListData);
+      const newlyProcessedItems = await processItems(updatedListData, exchangeRate || undefined, availableStores);
+
+      // Keep selected item in sync with fresh data from server only if it's still open
+      if (newlyProcessedItems) {
+        const freshItem = newlyProcessedItems.find(i => i.item_id === itemToUpdate.item_id);
+        setSelectedItem(prev => (prev && prev.item_id === itemToUpdate.item_id ? freshItem || null : prev));
+      }
+
+      // Pro-Manual: Inform that list is ready but stay in the list
+      if (
+        updatedListData.status === 'ACTIVE' && 
+        updatedListData.items.length > 0 && 
+        updatedListData.items.every(i => i.is_purchased) &&
+        updatedFields.is_purchased === true
+      ) {
+        Alert.alert(
+          "¡Todo listo!",
+          "Has marcado todos los productos como comprados. Puedes cerrar la lista cuando estés listo usando el botón al final.",
+          [{ text: "Entendido" }]
+        );
+      }
     } catch (e) {
       console.error("Failed to update item:", e);
       setItems(originalItems); // Revert on error
@@ -324,9 +379,14 @@ export default function ListDetailScreen() {
               >
                 {item.productName}
               </Text>
-              {item.is_purchased && (
-                <MaterialIcons name="check-circle" size={16} color={primaryColor} />
-              )}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                {item.store_id && (
+                  <MaterialIcons name="storefront" size={16} color="#2196F3" />
+                )}
+                {item.is_purchased && (
+                  <MaterialIcons name="check-circle" size={16} color={primaryColor} />
+                )}
+              </View>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ color: '#888', fontSize: 12 }}>{item.product_barcode}</Text>
@@ -363,6 +423,17 @@ export default function ListDetailScreen() {
           keyExtractor={(item) => item.item_id}
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 15, paddingBottom: 120 + insets.bottom }}
+          ListFooterComponent={
+            items.length > 0 && items.every(i => i.is_purchased) && list?.status === 'ACTIVE' ? (
+              <TouchableOpacity 
+                style={[styles.finalizeShortcut, { backgroundColor: primaryColor }]}
+                onPress={handleCompleteListPress}
+              >
+                <MaterialIcons name="done-all" size={20} color="white" />
+                <Text style={styles.finalizeShortcutText}>Finalizar Lista</Text>
+              </TouchableOpacity>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={{ alignItems: 'center', marginTop: 50 }}>
               <FontAwesome5 name="clipboard-list" size={50} color="#ddd" />
@@ -683,5 +754,24 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 15,
     gap: 8,
+  },
+  finalizeShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    borderRadius: 16,
+    marginTop: 20,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  finalizeShortcutText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 17,
   },
 });

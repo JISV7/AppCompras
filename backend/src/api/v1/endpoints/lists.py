@@ -146,15 +146,17 @@ async def complete_list(
 
     # 3. Process each item in the list
     for item in shopping_list.items:
-        if not item.is_purchased and item.planned_price is not None:
-            # Mark as purchased
-            item.is_purchased = True
+        # If item has a price, we want to ensure it is logged and marked as purchased
+        if item.planned_price is not None:
+            if not item.is_purchased:
+                item.is_purchased = True
             
             # Use item's specific store if assigned, else use the list's completion store
             final_store_id = item.store_id or store_id
-            item.store_id = final_store_id
+            if not item.store_id:
+                item.store_id = final_store_id
 
-            # Log price if not already logged
+            # Log price if not already logged for this specific event
             existing_price_log = await db.execute(
                 select(PriceLog).where(
                     PriceLog.product_barcode == item.product_barcode,
@@ -174,6 +176,12 @@ async def complete_list(
                     **price_log_create.model_dump(), user_id=current_user.user_id
                 )
                 db.add(new_price_log)
+            db.add(item)
+        elif not item.is_purchased:
+            # Item has no price but we are completing the list, mark as purchased anyway
+            item.is_purchased = True
+            if not item.store_id:
+                item.store_id = store_id
             db.add(item)
 
     # 4. Update shopping list status
