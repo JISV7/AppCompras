@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 from uuid import UUID
 
@@ -20,3 +21,13 @@ class PriceLogRead(BaseSchema):
     price: float
     currency: str
     recorded_at: datetime
+
+
+class PriceComparison(BaseSchema):
+    store_id: UUID
+    store_name: str
+    address: Optional[str] = None
+    price: float
+    currency: str
+    recorded_at: datetime
+    distance_meters: Optional[float] = None

@@ -5,8 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { StoreSelectorModal } from '../stores/StoreSelectorModal';
-import { reportPrice, Product } from '@/services/api';
+import { reportPrice, getProductPriceComparison, Product, PriceComparison } from '@/services/api';
 import * as Clipboard from 'expo-clipboard';
+import * as Location from 'expo-location';
 
 interface ProductSheetProps {
   visible: boolean;
@@ -37,13 +38,40 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
   const [storeSelectorVisible, setStoreSelectorVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Comparison state
+  const [comparisons, setComparisons] = useState<PriceComparison[]>([]);
+  const [loadingComparisons, setLoadingComparisons] = useState(false);
+
   useEffect(() => {
     if (visible) {
       setCurrentView(mode === 'log' ? 'reporting' : 'info');
       setPrice('');
       setSelectedStore(null);
+      if (product) {
+        fetchComparisons();
+      }
     }
-  }, [visible, mode]);
+  }, [visible, mode, product]);
+
+  const fetchComparisons = async () => {
+    if (!product) return;
+    setLoadingComparisons(true);
+    try {
+      let lat, lon;
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        lat = loc.coords.latitude;
+        lon = loc.coords.longitude;
+      }
+      const data = await getProductPriceComparison(product.barcode, lat, lon);
+      setComparisons(data);
+    } catch (error) {
+      console.error("Comparison fetch failed", error);
+    } finally {
+      setLoadingComparisons(false);
+    }
+  };
 
   const handleCopy = async (text: string | null) => {
     if (!text) return;
@@ -61,12 +89,19 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
     try {
       await reportPrice(product.barcode, selectedStore.store_id, parseFloat(price));
       Alert.alert("Éxito", "Precio reportado correctamente.");
-      onClose();
+      fetchComparisons(); // Refresh
+      setCurrentView('info');
     } catch {
       Alert.alert("Error", "No se pudo reportar el precio.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const formatDistance = (meters?: number) => {
+    if (meters === undefined) return null;
+    if (meters < 1000) return `${meters.toFixed(0)}m`;
+    return `${(meters / 1000).toFixed(1)}km`;
   };
 
   const renderInfoView = () => (
@@ -94,6 +129,50 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
           </View>
         </View>
       </View>
+
+      {/* Comparison Section */}
+      <View style={styles.comparisonHeader}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>Precios en tiendas</Text>
+          <TouchableOpacity onPress={() => setCurrentView('reporting')}>
+              <Text style={{ color: primaryColor, fontWeight: 'bold' }}>+ Reportar</Text>
+          </TouchableOpacity>
+      </View>
+
+      {loadingComparisons ? (
+          <ActivityIndicator color={primaryColor} style={{ marginVertical: 20 }} />
+      ) : comparisons.length > 0 ? (
+          <View style={styles.comparisonList}>
+              {comparisons.map((item, index) => (
+                  <View key={item.store_id} style={[styles.comparisonItem, { borderBottomColor: cardColor, borderBottomWidth: index === comparisons.length - 1 ? 0 : 1 }]}>
+                      <View style={{ flex: 1 }}>
+                          <Text style={[styles.storeName, { color: textColor }]}>{item.store_name}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              {item.distance_meters !== undefined && (
+                                  <Text style={{ color: subTextColor, fontSize: 12 }}>{formatDistance(item.distance_meters)} •</Text>
+                              )}
+                              <Text style={{ color: subTextColor, fontSize: 12 }}>
+                                  {new Date(item.recorded_at).toLocaleDateString()}
+                              </Text>
+                          </View>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[styles.priceText, { color: index === 0 ? primaryColor : textColor }]}>
+                              ${item.price.toFixed(2)}
+                          </Text>
+                          {index === 0 && (
+                              <View style={styles.bestPriceBadge}>
+                                  <Text style={styles.bestPriceText}>MEJOR PRECIO</Text>
+                              </View>
+                          )}
+                      </View>
+                  </View>
+              ))}
+          </View>
+      ) : (
+          <View style={styles.emptyComparisons}>
+              <Text style={{ color: subTextColor, textAlign: 'center' }}>Aún no hay precios registrados para este producto en tiendas cercanas.</Text>
+          </View>
+      )}
 
       <View style={styles.actionGrid}>
           <TouchableOpacity 
@@ -128,6 +207,8 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
             placeholder="0.00"
             placeholderTextColor="#999"
             autoFocus
+            returnKeyType="done"
+            onSubmitEditing={handleReportPrice}
           />
       </View>
 
@@ -151,11 +232,9 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
         {isSubmitting ? <ActivityIndicator color="white" /> : <Text style={styles.submitButtonText}>Guardar Precio</Text>}
       </TouchableOpacity>
 
-      {mode === 'search' && (
-        <TouchableOpacity style={styles.backButton} onPress={() => setCurrentView('info')}>
-           <Text style={{ color: subTextColor }}>Volver a información</Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity style={styles.backButton} onPress={() => setCurrentView('info')}>
+         <Text style={{ color: subTextColor }}>Volver a información</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -248,7 +327,7 @@ export function ProductSheet({ visible, loading, product, barcode, mode = 'searc
 const styles = StyleSheet.create({
   overlayWrapper: { flex: 1 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 450, shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 450, maxHeight: '90%', shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
   handle: { width: 40, height: 5, backgroundColor: '#E0E0E0', borderRadius: 10, alignSelf: 'center', marginBottom: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 20, fontWeight: 'bold' },
@@ -265,7 +344,7 @@ const styles = StyleSheet.create({
   badge: { backgroundColor: '#E3F2FD', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   copyBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F5F5F5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   badgeText: { fontSize: 10, color: '#1565C0', fontWeight: 'bold' },
-  actionGrid: { flexDirection: 'row', gap: 12, marginTop: 10 },
+  actionGrid: { flexDirection: 'row', gap: 12, marginTop: 25 },
   bigButton: { flexDirection: 'row', height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 8 },
   bigButtonText: { color: 'white', fontWeight: '700', fontSize: 15 },
   unknownIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
@@ -276,6 +355,17 @@ const styles = StyleSheet.create({
   createButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   rescanButton: { alignItems: 'center', marginTop: 25, padding: 10 },
   
+  // Comparison Styles
+  comparisonHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, marginTop: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold' },
+  comparisonList: { backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16, overflow: 'hidden' },
+  comparisonItem: { flexDirection: 'row', alignItems: 'center', padding: 15 },
+  storeName: { fontWeight: '600', fontSize: 14, marginBottom: 2 },
+  priceText: { fontSize: 16, fontWeight: 'bold' },
+  bestPriceBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
+  bestPriceText: { color: '#2E7D32', fontSize: 8, fontWeight: 'bold' },
+  emptyComparisons: { padding: 20, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16 },
+
   // Reporting View Styles
   reportingContainer: { flex: 1 },
   miniProductRow: { marginBottom: 20 },

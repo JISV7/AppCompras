@@ -1,9 +1,11 @@
-import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, ActivityIndicator, Pressable, Platform, KeyboardAvoidingView, TextInput, Alert, Switch, ScrollView } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
 import { StoreSelectorModal } from '../stores/StoreSelectorModal';
+import { getProductPriceComparison, PriceComparison } from '@/services/api';
+import * as Location from 'expo-location';
 
 interface EnrichedListItem {
     item_id: string;
@@ -13,7 +15,7 @@ interface EnrichedListItem {
     productImage?: string;
     estimatedPrice?: number; // Average
     predictedPrice?: number; // AI / Exchange Rate 
-    added_at?: string; // We'll pass this string
+    added_at?: string; 
     planned_price?: number;
     is_purchased?: boolean;
     store_id?: string;
@@ -35,6 +37,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
     const textColor = useThemeColor({}, 'textMain');
     const subTextColor = '#888';
     const primaryColor = useThemeColor({}, 'primary');
+    const cardColor = useThemeColor({}, 'surfaceLight');
 
     const [isEditingQty, setIsEditingQty] = useState(false);
     const [qtyValue, setQtyValue] = useState('');
@@ -48,6 +51,10 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
     const [isPurchasedState, setIsPurchasedState] = useState(item?.is_purchased || false);
     const [selectedStoreId, setSelectedStoreId] = useState(item?.store_id || null);
     const [storeSelectorVisible, setStoreSelectorVisible] = useState(false);
+
+    // Comparison state
+    const [comparisons, setComparisons] = useState<PriceComparison[]>([]);
+    const [loadingComparisons, setLoadingComparisons] = useState(false);
 
     const saveLock = React.useRef(false);
 
@@ -69,40 +76,42 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
             setIsPurchasedState(item?.is_purchased || false);
             setSelectedStoreId(item?.store_id || null);
+            
+            if (item) fetchComparisons();
         }
     }, [visible, item, exchangeRate]);
+
+    const fetchComparisons = async () => {
+        if (!item) return;
+        setLoadingComparisons(true);
+        try {
+            let lat, lon;
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+                const loc = await Location.getCurrentPositionAsync({});
+                lat = loc.coords.latitude;
+                lon = loc.coords.longitude;
+            }
+            const data = await getProductPriceComparison(item.product_barcode, lat, lon);
+            setComparisons(data);
+        } catch (error) {
+            console.error("Comparison fetch failed", error);
+        } finally {
+            setLoadingComparisons(false);
+        }
+    };
 
     if (!item) return null;
 
     const formatDate = (dateString?: string) => {
-        if (!dateString) return 'Unknown';
-
+        if (!dateString) return 'Desconocido';
         const isoUtcString = dateString.includes('T') ? dateString : dateString.replace(' ', 'T') + 'Z';
         const date = new Date(isoUtcString);
-
-        const dateOptions: Intl.DateTimeFormatOptions = {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        };
-
-        const timeOptions: Intl.DateTimeFormatOptions = {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-        };
-
-        const formattedDate = date.toLocaleDateString(undefined, dateOptions);
-        const formattedTime = date.toLocaleTimeString(undefined, timeOptions);
-
-        return `${formattedDate}, ${formattedTime}`;
+        return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     };
 
     const handleQtyPress = () => {
-        if (isPurchasedState) {
-            Alert.alert("Item Comprado", "Desmarca como comprado para editar la cantidad.");
-            return;
-        }
+        if (isPurchasedState) return Alert.alert("Ítem Comprado", "Desmarca como comprado para editar.");
         if (onUpdateItem) {
             saveLock.current = false;
             setQtyValue(item.quantity.toString());
@@ -112,7 +121,6 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
     const handleSaveQty = () => {
         if (saveLock.current) return;
-
         const num = parseInt(qtyValue, 10);
         if (!isNaN(num) && num > 0 && num <= 99) {
             if (num !== item.quantity) {
@@ -121,78 +129,29 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
             }
             setIsEditingQty(false);
         } else {
-            Alert.alert("Inválido", "1-99");
+            Alert.alert("Inválido", "Cantidad debe ser 1-99");
             setIsEditingQty(false);
         }
     };
 
-    const handlePricePress = () => {
-        if (priceLocked) {
-            Alert.alert("Precio Bloqueado", "La lista está completada. Reabre la lista para editar el precio.");
-            return;
-        }
-        if (isPurchasedState) {
-            Alert.alert("Item Comprado", "Desmarca como comprado para editar el precio.");
-            return;
-        }
-        if (onUpdateItem) {
-            saveLock.current = false;
-            setIsEditingPrice(true);
-        }
-    };
-
-    const handlePriceBsPress = () => {
-        if (priceLocked) {
-            Alert.alert("Precio Bloqueado", "La lista está completada. Reabre la lista para editar el precio.");
-            return;
-        }
-        if (isPurchasedState) {
-            Alert.alert("Item Comprado", "Desmarca como comprado para editar el precio.");
-            return;
-        }
-        if (onUpdateItem) {
-            saveLock.current = false;
-            setIsEditingPriceBs(true);
-        }
-    };
-
     const handlePriceChange = (text: string) => {
-        if (text === '') {
-            setPriceValue('');
-            setPriceBsValue('');
-            return;
-        }
-
+        if (text === '') { setPriceValue(''); setPriceBsValue(''); return; }
         if (!/^\d*\.?\d*$/.test(text)) return;
-
         setPriceValue(text);
-
         const usd = parseFloat(text);
-        if (!isNaN(usd) && exchangeRate) {
-            setPriceBsValue((usd * exchangeRate).toFixed(2));
-        }
+        if (!isNaN(usd) && exchangeRate) setPriceBsValue((usd * exchangeRate).toFixed(2));
     };
 
     const handlePriceBsChange = (text: string) => {
-        if (text === '') {
-            setPriceBsValue('');
-            setPriceValue('');
-            return;
-        }
-
+        if (text === '') { setPriceBsValue(''); setPriceValue(''); return; }
         if (!/^\d*\.?\d*$/.test(text)) return;
-
         setPriceBsValue(text);
-
         const bs = parseFloat(text);
-        if (!isNaN(bs) && exchangeRate && exchangeRate !== 0) {
-            setPriceValue((bs / exchangeRate).toFixed(6));
-        }
+        if (!isNaN(bs) && exchangeRate) setPriceValue((bs / exchangeRate).toFixed(6));
     };
 
     const handleSavePrice = () => {
         if (saveLock.current) return;
-
         if (priceValue === '' || priceValue === '0') {
              saveLock.current = true;
              onUpdateItem?.({ planned_price: null });
@@ -200,7 +159,6 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
              setIsEditingPriceBs(false);
              return;
         }
-
         const price = parseFloat(priceValue);
         if (!isNaN(price) && price >= 0) {
             const originalPrice = item.planned_price ?? item.estimatedPrice ?? 0;
@@ -211,7 +169,6 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
             setIsEditingPrice(false);
             setIsEditingPriceBs(false);
         } else {
-            Alert.alert("Precio Inválido", "Debe ser 0 o mayor");
             setIsEditingPrice(false);
             setIsEditingPriceBs(false);
         }
@@ -228,6 +185,11 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
         onUpdateItem?.({ store_id: store.store_id });
     };
 
+    const formatDistance = (meters?: number) => {
+        if (meters === undefined) return null;
+        return meters < 1000 ? `${meters.toFixed(0)}m` : `${(meters / 1000).toFixed(1)}km`;
+    };
+
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.overlayWrapper}>
@@ -235,7 +197,6 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                     <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                     
                     <View style={[styles.sheet, { backgroundColor: sheetColor, paddingBottom: insets.bottom + 20 }]}>
-
                         <View style={styles.handle} />
 
                         <View style={styles.header}>
@@ -300,7 +261,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                 <View style={styles.gridRow}>
                                     <TouchableOpacity
                                         style={[styles.statBox, { backgroundColor: '#E3F2FD', borderColor: primaryColor, borderWidth: 1 }]}
-                                        onPress={handlePricePress}
+                                        onPress={() => !priceLocked && !isPurchasedState && setIsEditingPrice(true)}
                                         activeOpacity={0.8}
                                     >
                                         <Text style={styles.statLabel}>Precio ($)</Text>
@@ -329,7 +290,7 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
 
                                     <TouchableOpacity
                                         style={[styles.statBox, { backgroundColor: '#E3F2FD', borderColor: primaryColor, borderWidth: 1 }]}
-                                        onPress={handlePriceBsPress}
+                                        onPress={() => !priceLocked && !isPurchasedState && setIsEditingPriceBs(true)}
                                         activeOpacity={0.8}
                                     >
                                         <Text style={styles.statLabel}>Precio (Bs)</Text>
@@ -358,43 +319,58 @@ export function ListItemSheet({ visible, item, onClose, onUpdateItem, priceLocke
                                 </View>
                             </View>
 
-                            <View style={[styles.detailRow, { borderBottomColor: '#eee', borderBottomWidth: 1 }]}>
+                            {/* Comparison Section */}
+                            <Text style={[styles.sectionTitle, { color: textColor, marginTop: 10, marginBottom: 15 }]}>Comparativa de precios</Text>
+                            {loadingComparisons ? (
+                                <ActivityIndicator color={primaryColor} style={{ marginVertical: 15 }} />
+                            ) : comparisons.length > 0 ? (
+                                <View style={styles.comparisonList}>
+                                    {comparisons.map((c, idx) => (
+                                        <TouchableOpacity 
+                                            key={c.store_id} 
+                                            style={[styles.comparisonItem, { borderBottomColor: cardColor, borderBottomWidth: idx === comparisons.length - 1 ? 0 : 1 }]}
+                                            onPress={() => handleSelectStore(c)}
+                                        >
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={[styles.storeName, { color: textColor }]}>{c.store_name}</Text>
+                                                <Text style={{ color: subTextColor, fontSize: 12 }}>
+                                                    {formatDistance(c.distance_meters)} • {new Date(c.recorded_at).toLocaleDateString()}
+                                                </Text>
+                                            </View>
+                                            <View style={{ alignItems: 'flex-end' }}>
+                                                <Text style={[styles.priceText, { color: idx === 0 ? primaryColor : textColor }]}>${c.price.toFixed(2)}</Text>
+                                                {idx === 0 && <View style={styles.bestPriceBadge}><Text style={styles.bestPriceText}>MEJOR PRECIO</Text></View>}
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            ) : (
+                                <View style={styles.emptyBox}><Text style={{ color: subTextColor, textAlign: 'center' }}>Sin registros en otras tiendas.</Text></View>
+                            )}
+
+                            <View style={[styles.detailRow, { borderBottomColor: '#eee', borderBottomWidth: 1, marginTop: 20 }]}>
                                 <Text style={{ color: subTextColor }}>Agregado el</Text>
                                 <Text style={{ color: textColor, fontWeight: '500' }}>{formatDate(item.added_at)}</Text>
                             </View>
 
                             <View style={[styles.detailRow, { borderBottomColor: '#eee', borderBottomWidth: 1 }]}>
                                 <Text style={{ color: subTextColor }}>¿Comprado?</Text>
-                                <Switch
-                                    onValueChange={handleTogglePurchased}
-                                    value={isPurchasedState}
-                                    trackColor={{ false: '#767577', true: primaryColor }}
-                                    thumbColor={isPurchasedState ? '#f4f3f4' : '#f4f3f4'}
-                                />
+                                <Switch onValueChange={handleTogglePurchased} value={isPurchasedState} trackColor={{ false: '#767577', true: primaryColor }} />
                             </View>
 
-                            <TouchableOpacity 
-                                style={styles.detailRow} 
-                                onPress={() => setStoreSelectorVisible(true)}
-                            >
+                            <TouchableOpacity style={styles.detailRow} onPress={() => setStoreSelectorVisible(true)}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <MaterialIcons name="storefront" size={20} color={subTextColor} />
                                     <Text style={{ color: subTextColor }}>Tienda</Text>
                                 </View>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Text style={{ color: textColor, fontWeight: '500' }}>
-                                        {item.storeName || 'Seleccionar...'}
-                                    </Text>
+                                    <Text style={{ color: textColor, fontWeight: '500' }}>{item.storeName || 'Seleccionar...'}</Text>
                                     <Ionicons name="chevron-forward" size={16} color={subTextColor} />
                                 </View>
                             </TouchableOpacity>
                         </ScrollView>
 
-                        <StoreSelectorModal
-                            visible={storeSelectorVisible}
-                            onClose={() => setStoreSelectorVisible(false)}
-                            onSelect={handleSelectStore}
-                        />
+                        <StoreSelectorModal visible={storeSelectorVisible} onClose={() => setStoreSelectorVisible(false)} onSelect={handleSelectStore} />
                     </View>
                 </View>
             </KeyboardAvoidingView>
@@ -421,5 +397,15 @@ const styles = StyleSheet.create({
     statBox: { flex: 1, padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     statLabel: { fontSize: 12, color: '#666', marginBottom: 5 },
     statValue: { fontSize: 20, fontWeight: 'bold', lineHeight: 28 }, 
-    detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, alignItems: 'center' }
+    detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, alignItems: 'center' },
+    
+    // Comparison Styles
+    sectionTitle: { fontSize: 16, fontWeight: 'bold' },
+    comparisonList: { backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16, overflow: 'hidden' },
+    comparisonItem: { flexDirection: 'row', alignItems: 'center', padding: 15 },
+    storeName: { fontWeight: '600', fontSize: 14, marginBottom: 2 },
+    priceText: { fontSize: 16, fontWeight: 'bold' },
+    bestPriceBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
+    bestPriceText: { color: '#2E7D32', fontSize: 8, fontWeight: 'bold' },
+    emptyBox: { padding: 20, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 16 }
 });

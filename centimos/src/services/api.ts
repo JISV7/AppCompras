@@ -97,6 +97,28 @@ export const getExchangeRateHistory = async (limit: number = 30) => {
   }
 };
 
+export interface PriceComparison {
+  store_id: string;
+  store_name: string;
+  address?: string;
+  price: number;
+  currency: string;
+  recorded_at: string;
+  distance_meters?: number;
+}
+
+export const getProductPriceComparison = async (barcode: string, lat?: number, lon?: number): Promise<PriceComparison[]> => {
+  try {
+    const response = await api.get(`/prices/comparison/${barcode}`, {
+      params: { lat, lon }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch price comparison", error);
+    return [];
+  }
+};
+
 export const reportPrice = async (barcode: string, storeId: string, price: number) => {
   try {
     const response = await api.post('/prices/', {

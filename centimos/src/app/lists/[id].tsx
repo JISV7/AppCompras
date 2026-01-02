@@ -441,7 +441,7 @@ export default function ListDetailScreen() {
           <Pressable style={[styles.completeModalContent, { backgroundColor: cardColor }]} onPress={(e) => e.stopPropagation()}>
             <Text style={[styles.completeModalTitle, { color: textColor }]}>Finalizar Lista</Text>
             <Text style={[styles.completeModalSubtitle, { color: subTextColor }]}>
-              Marcar todos los artículos no comprados como comprados y registrar sus precios.
+              Marcar todos los artículos como comprados en una misma tienda.
             </Text>
 
             {/* Store Selection */}
