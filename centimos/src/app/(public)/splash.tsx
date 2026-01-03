@@ -101,7 +101,7 @@ export default function SplashScreen() {
 						{ color: useThemeColor({}, "textSecondary") },
 					]}
 				>
-					Potenciado por Datos Inteligentes
+					Potenciado por Datos de la Comunidad
 				</Text>
 				<View
 					style={[

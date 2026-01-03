@@ -8,6 +8,7 @@ import {
 	Alert,
 	Image,
 	KeyboardAvoidingView,
+	Linking,
 	Modal,
 	Platform,
 	Pressable,
@@ -108,7 +109,20 @@ export function ProductSheet({
 	const handleCopy = async (text: string | null) => {
 		if (!text) return;
 		await Clipboard.setStringAsync(text);
-		Alert.alert("Copiado", "El código ha sido copiado al portapapeles.");
+		Alert.alert("Copiado", "El contenido ha sido copiado al portapapeles.");
+	};
+
+	const handleOpenLink = async (url: string) => {
+		try {
+			const supported = await Linking.canOpenURL(url);
+			if (supported) {
+				await Linking.openURL(url);
+			} else {
+				Alert.alert("Error", "No se puede abrir este enlace.");
+			}
+		} catch {
+			Alert.alert("Error", "Ocurrió un error al intentar abrir el enlace.");
+		}
 	};
 
 	const handleReportPrice = async () => {
@@ -412,61 +426,119 @@ export function ProductSheet({
 									)
 								) : (
 									<View style={styles.centerBox}>
-										<View style={styles.unknownIconCircle}>
-											<FontAwesome5
-												name="question"
-												size={40}
-												color={subTextColor}
-											/>
-										</View>
-										<Text style={[styles.notFoundTitle, { color: textColor }]}>
-											¡Nuevo Descubrimiento!
-										</Text>
-										<Text
-											style={[styles.notFoundText, { color: subTextColor }]}
-										>
-											No tenemos este producto en nuestra base de datos todavía.
-										</Text>
+										{(() => {
+											const isUrl = /^(https?:\/\/|www\.)/i.test(barcode || "");
+											const isGtin = /^\d{8,14}$/.test(barcode || "");
 
-										<TouchableOpacity
-											onPress={() => handleCopy(barcode)}
-											style={styles.barcodeBox}
-										>
-											<Ionicons
-												name="barcode-outline"
-												size={20}
-												color={subTextColor}
-											/>
-											<Text
-												style={{ color: subTextColor, fontFamily: "monospace" }}
-											>
-												{" "}
-												{barcode}{" "}
-											</Text>
-											<MaterialIcons
-												name="content-copy"
-												size={14}
-												color={subTextColor}
-											/>
-										</TouchableOpacity>
+											return (
+												<>
+													<View style={styles.unknownIconCircle}>
+														<FontAwesome5
+															name={
+																isUrl
+																	? "link"
+																	: isGtin
+																		? "question"
+																		: "align-left"
+															}
+															size={40}
+															color={subTextColor}
+														/>
+													</View>
+													<Text
+														style={[styles.notFoundTitle, { color: textColor }]}
+													>
+														{isUrl
+															? "Enlace Detectado"
+															: isGtin
+																? "¡Nuevo Descubrimiento!"
+																: "Contenido Escaneado"}
+													</Text>
+													<Text
+														style={[
+															styles.notFoundText,
+															{ color: subTextColor },
+														]}
+													>
+														{isUrl
+															? "Este código contiene un enlace web."
+															: isGtin
+																? "No tenemos este producto en nuestra base de datos todavía."
+																: "Se ha detectado texto en el código."}
+													</Text>
 
-										<TouchableOpacity
-											style={[
-												styles.createButton,
-												{ backgroundColor: primaryColor },
-											]}
-											onPress={() => {
-												onClose();
-												router.push({
-													pathname: "/product/create",
-													params: { barcode: barcode },
-												});
-											}}
-										>
-											<Text style={styles.createButtonText}>
-												Crear Producto
-											</Text>
-										</TouchableOpacity>
+													<TouchableOpacity
+														onPress={() => handleCopy(barcode)}
+														style={styles.barcodeBox}
+													>
+														<Ionicons
+															name={isUrl ? "globe-outline" : "barcode-outline"}
+															size={20}
+															color={subTextColor}
+														/>
+														<Text
+															style={{
+																color: subTextColor,
+																fontFamily: isGtin ? "monospace" : "System",
+																flexShrink: 1,
+															}}
+															numberOfLines={2}
+														>
+															{" "}
+															{barcode}{" "}
+														</Text>
+														<MaterialIcons
+															name="content-copy"
+															size={14}
+															color={subTextColor}
+														/>
+													</TouchableOpacity>
+
+													<View style={{ width: "100%", gap: 12 }}>
+														{isUrl && (
+															<TouchableOpacity
+																style={[
+																	styles.createButton,
+																	{ backgroundColor: "#2196F3" },
+																]}
+																onPress={() =>
+																	barcode && handleOpenLink(barcode)
+																}
+															>
+																<MaterialIcons
+																	name="open-in-new"
+																	size={20}
+																	color="white"
+																/>
+																<Text style={styles.createButtonText}>
+																	Abrir enlace
+																</Text>
+															</TouchableOpacity>
+														)}
+
+														{isGtin && (
+															<TouchableOpacity
+																style={[
+																	styles.createButton,
+																	{ backgroundColor: primaryColor },
+																]}
+																onPress={() => {
+																	onClose();
+																	router.push({
+																		pathname: "/product/create",
+																		params: { barcode: barcode },
+																	});
+																}}
+															>
+																<Text style={styles.createButtonText}>
+																	Crear Producto
+																</Text>
+															</TouchableOpacity>
+														)}
+													</View>
+												</>
+											);
+										})()}
 									</View>
 								)}
 							</View>

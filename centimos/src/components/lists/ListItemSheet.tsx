@@ -129,7 +129,11 @@ export function ListItemSheet({
 			setPriceValue(currentPrice.toString());
 
 			if (exchangeRate) {
-				setPriceBsValue((currentPrice * exchangeRate).toFixed(2));
+				// Use a higher precision for the initial calculation to avoid immediate rounding errors
+				const exactBs = currentPrice * exchangeRate;
+				// If the difference is negligible (less than 0.001 Bs), we can show 2 decimals
+				// otherwise, we might need to show more or adjust how we handle the input
+				setPriceBsValue(exactBs.toFixed(2));
 			} else {
 				setPriceBsValue("0.00");
 			}
@@ -223,8 +227,10 @@ export function ListItemSheet({
 		if (!/^\d*\.?\d*$/.test(text)) return;
 		setPriceValue(text);
 		const usd = parseFloat(text);
-		if (!Number.isNaN(usd) && exchangeRate)
+		if (!Number.isNaN(usd) && exchangeRate) {
+			// Show Bolivar conversion with 2 decimals for display
 			setPriceBsValue((usd * exchangeRate).toFixed(2));
+		}
 	};
 
 	const handlePriceBsChange = (text: string) => {
@@ -236,8 +242,10 @@ export function ListItemSheet({
 		if (!/^\d*\.?\d*$/.test(text)) return;
 		setPriceBsValue(text);
 		const bs = parseFloat(text);
-		if (!Number.isNaN(bs) && exchangeRate)
-			setPriceValue((bs / exchangeRate).toFixed(6));
+		if (!Number.isNaN(bs) && exchangeRate) {
+			// Store USD with high precision (8 decimals) to avoid rounding jumps in local currency
+			setPriceValue((bs / exchangeRate).toFixed(8));
+		}
 	};
 
 	const handleSavePrice = () => {
@@ -257,7 +265,8 @@ export function ListItemSheet({
 		}
 
 		if (price >= 0) {
-			if (Math.abs(price - originalPrice) > 0.0001) {
+			// Increase precision check for changes
+			if (Math.abs(price - originalPrice) > 0.00000001) {
 				saveLock.current = true;
 				onUpdateItem?.({ planned_price: price });
 			}
@@ -647,7 +656,16 @@ export function ListItemSheet({
 									{ borderBottomColor: "#eee", borderBottomWidth: 1 },
 								]}
 							>
-								<Text style={{ color: subTextColor }}>¿Comprado?</Text>
+								<View
+									style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+								>
+									<MaterialIcons
+										name="check-circle"
+										size={20}
+										color={isPurchasedState ? primaryColor : "#E0E0E0"}
+									/>
+									<Text style={{ color: subTextColor }}>¿Comprado?</Text>
+								</View>
 								<Switch
 									onValueChange={handleTogglePurchased}
 									value={isPurchasedState}
@@ -665,7 +683,7 @@ export function ListItemSheet({
 									<MaterialIcons
 										name="storefront"
 										size={20}
-										color={subTextColor}
+										color={item.store_id ? "#2196F3" : "#E0E0E0"}
 									/>
 									<Text style={{ color: subTextColor }}>Tienda</Text>
 								</View>

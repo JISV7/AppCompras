@@ -10,6 +10,15 @@ export interface ListItem {
 	store_id?: string;
 }
 
+// Helper interface to combine List Item + Product Details
+export interface EnrichedListItem extends ListItem {
+	productName?: string;
+	productImage?: string;
+	estimatedPrice?: number;
+	predictedPrice?: number;
+	storeName?: string;
+}
+
 export interface ShoppingList {
 	list_id: string;
 	name: string;

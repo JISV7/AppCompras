@@ -34,7 +34,6 @@ import {
 	type Product,
 } from "@/services/api";
 import { addListItem } from "@/services/lists";
-import { validateGtin } from "@/services/validate";
 
 export default function HomeScreen() {
 	const color = useThemeColor({}, "background");
@@ -142,33 +141,34 @@ export default function HomeScreen() {
 
 		// Check if the input looks like a barcode (8 or more digits, starting with a digit)
 		const isBarcode = /^\d{8,}$/.test(barcode);
+		// Check if it's a URL or very long text (likely not a product name search)
+		const isUrl = /^(https?:\/\/|www\.)/i.test(barcode);
+		const isRawContent = isUrl || (barcode.length > 30 && !isBarcode);
 
-		if (isBarcode) {
-			if (!validateGtin(barcode)) {
-				Alert.alert(
-					"Código inválido",
-					"Por favor ingresa un código de barras válido con el formato correcto.",
-				);
-				return;
-			}
+		if (isBarcode || isRawContent) {
 			// 1. Reset UI
 			Keyboard.dismiss();
 			setSheetVisible(true);
-			setIsSearching(true);
 			setLastScannedCode(barcode);
 			setScannedProduct(null);
 
-			// 2. API Call
-			try {
-				const product = await getProduct(barcode);
-				setScannedProduct(product);
-			} catch (error: unknown) {
-				console.error("Barcode search failed", error);
-			} finally {
+			if (isBarcode) {
+				setIsSearching(true);
+				// 2. API Call
+				try {
+					const product = await getProduct(barcode);
+					setScannedProduct(product);
+				} catch (error: unknown) {
+					console.error("Barcode search failed", error);
+				} finally {
+					setIsSearching(false);
+				}
+			} else {
+				// It's a URL or raw text, no need to query the products API
 				setIsSearching(false);
 			}
 		} else {
-			// It's a text search (name, brand, etc.)
+			// It's a typical text search (name, brand, etc.)
 			Keyboard.dismiss();
 			setSearchResultsVisible(true);
 		}
