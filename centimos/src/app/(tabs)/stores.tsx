@@ -35,7 +35,6 @@ export default function StoresScreen() {
 	const [stores, setStores] = useState<Store[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [_isSearching, setIsSearching] = useState(false);
 	const [modalVisible, setModalVisible] = useState(false);
 
 	// Detail Modal
@@ -45,21 +44,18 @@ export default function StoresScreen() {
 	// Location
 	const [userLocation, setUserLocation] =
 		useState<Location.LocationObject | null>(null);
-	const [_permissionGranted, setPermissionGranted] = useState(false);
 
 	const initLocationAndFetch = useCallback(async () => {
 		setLoading(true);
 		try {
 			const { status } = await Location.requestForegroundPermissionsAsync();
 			if (status !== "granted") {
-				setPermissionGranted(false);
 				setLoading(false);
 				// If no permission, try to load all stores or leave empty
 				const all = await searchStores("");
 				setStores(all);
 				return;
 			}
-			setPermissionGranted(true);
 
 			const location = await Location.getCurrentPositionAsync({});
 			setUserLocation(location);
@@ -87,7 +83,6 @@ export default function StoresScreen() {
 			return;
 		}
 
-		setIsSearching(true);
 		setLoading(true);
 		try {
 			const results = await searchStores(searchQuery);

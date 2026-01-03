@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import * as SecureStore from "expo-secure-store";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -38,7 +38,7 @@ export const getLatestExchangeRate = async () => {
 		const response = await api.get("/exchange-rates/latest");
 		return response.data; // Returns { currency_code, rate_to_ves, source, ... }
 	} catch (error: unknown) {
-		if (error instanceof axios.AxiosError && error.response?.status === 404) {
+		if (error instanceof AxiosError && error.response?.status === 404) {
 			// 404 is expected when no exchange rate data exists yet
 			console.log("No exchange rate data available yet");
 			return null; // Return null so the UI knows it failed (and can show fallback)
@@ -63,11 +63,11 @@ export const getProduct = async (barcode: string): Promise<Product | null> => {
 		const response = await api.get(`/products/${barcode}`);
 		return response.data;
 	} catch (error: unknown) {
-		if (error instanceof axios.AxiosError && error.response?.status === 404) {
+		if (error instanceof AxiosError && error.response?.status === 404) {
 			return null; // Product truly doesn't exist anywhere
 		}
 		// For 500 errors, log more details but still throw the error
-		if (error instanceof axios.AxiosError && error.response?.status === 500) {
+		if (error instanceof AxiosError && error.response?.status === 500) {
 			console.error(
 				`Server error when searching for product with barcode ${barcode}:`,
 				error.response.data,

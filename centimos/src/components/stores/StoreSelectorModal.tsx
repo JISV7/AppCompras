@@ -43,8 +43,6 @@ export function StoreSelectorModal({
 	const [stores, setStores] = useState<Store[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [_userLocation, setUserLocation] =
-		useState<Location.LocationObject | null>(null);
 
 	const loadInitialStores = useCallback(async () => {
 		setLoading(true);
@@ -52,7 +50,6 @@ export function StoreSelectorModal({
 			const { status } = await Location.requestForegroundPermissionsAsync();
 			if (status === "granted") {
 				const location = await Location.getCurrentPositionAsync({});
-				setUserLocation(location);
 				const nearby = await getNearbyStores(
 					location.coords.latitude,
 					location.coords.longitude,

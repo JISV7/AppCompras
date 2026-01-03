@@ -101,7 +101,7 @@ export function CreateStoreModal({
 			Alert.alert("Éxito", "¡Tienda creada correctamente!");
 			onStoreCreated();
 			onClose();
-		} catch (_error) {
+		} catch {
 			Alert.alert(
 				"Error",
 				"No se pudo crear la tienda. Es posible que ya exista.",

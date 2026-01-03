@@ -96,7 +96,6 @@ export default function ListDetailScreen() {
 	const [storeSearchResults, setStoreSearchResults] = useState<Store[]>([]);
 	const [nearbyStores, setNearbyStores] = useState<Store[]>([]);
 	const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
-	const [_searchingStores, setSearchingStores] = useState(false);
 
 	const calculateTotal = useCallback((currentItems: EnrichedListItem[]) => {
 		const total = currentItems.reduce((sum, item) => {
@@ -236,7 +235,7 @@ export default function ListDetailScreen() {
 
 		try {
 			await deleteListItem(id, itemId);
-		} catch (_e) {
+		} catch {
 			setItems(originalItems);
 			calculateTotal(originalItems);
 			Alert.alert("Error", "No se pudo eliminar el artículo");
@@ -257,7 +256,7 @@ export default function ListDetailScreen() {
 				Alert.alert("Éxito", "¡Lista cerrada y precios registrados!");
 				fetchData();
 				return;
-			} catch (_error) {
+			} catch {
 				Alert.alert("Error", "No se pudo cerrar la lista.");
 				setCompletingList(false);
 				return;
@@ -295,14 +294,11 @@ export default function ListDetailScreen() {
 	const handleStoreSearch = useCallback(async (text: string) => {
 		setStoreSearchQuery(text);
 		if (text.length > 1) {
-			setSearchingStores(true);
 			try {
 				const results = await searchStores(text);
 				setStoreSearchResults(results);
 			} catch (e) {
 				console.error(e);
-			} finally {
-				setSearchingStores(false);
 			}
 		} else {
 			setStoreSearchResults([]);
@@ -449,7 +445,7 @@ export default function ListDetailScreen() {
 			await updateList(id, { status: "ACTIVE" });
 			Alert.alert("Éxito", "¡Lista Reabierta!");
 			fetchData();
-		} catch (_error) {
+		} catch {
 			Alert.alert("Error", "No se pudo reabrir la lista.");
 		}
 	};

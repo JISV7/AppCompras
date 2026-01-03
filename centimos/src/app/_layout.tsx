@@ -39,7 +39,7 @@ function InitialLayout() {
 				router.replace("/(public)/welcome");
 			}
 		}
-	}, [user, isLoading, segments, router.replace]);
+	}, [user, isLoading, segments, router]);
 
 	return (
 		<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>

@@ -1,6 +1,5 @@
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useCameraPermissions } from "expo-camera";
-import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
 	Alert,
@@ -44,7 +43,6 @@ export default function HomeScreen() {
 	const cardColor = useThemeColor({}, "surfaceLight");
 	const primaryColor = useThemeColor({}, "primary");
 	const insets = useSafeAreaInsets();
-	const _router = useRouter();
 	const { logout } = useAuth();
 
 	// State
