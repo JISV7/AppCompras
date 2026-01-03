@@ -1,8 +1,10 @@
+-- START
 -- 1. SETUP & EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "postgis";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- CLEANUP
+DROP TABLE IF EXISTS password_resets CASCADE;
 DROP TABLE IF EXISTS list_items CASCADE;
 DROP TABLE IF EXISTS shopping_lists CASCADE;
 DROP TABLE IF EXISTS price_logs CASCADE;
@@ -14,10 +16,10 @@ DROP TABLE IF EXISTS users CASCADE;
 -- 2. USERS TABLE
 CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(50) UNIQUE NOT NULL,
+    username VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 3. EXCHANGE RATES
@@ -25,9 +27,9 @@ CREATE TABLE users (
 CREATE TABLE exchange_rates (
     rate_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     currency_code VARCHAR(5) NOT NULL, -- 'USD', 'EUR', 'USDT'
-    rate_to_ves DECIMAL(12, 4) NOT NULL, -- 65.50 (Bs per Dollar)
+    rate_to_ves DECIMAL(18, 8) NOT NULL, -- 65.50 (Bs per Dollar)
     source VARCHAR(50), -- 'BCV', 'Paralelo', 'Binance'
-    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    recorded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 4. STORES
@@ -37,7 +39,7 @@ CREATE TABLE stores (
     name VARCHAR(100) NOT NULL, -- 'Farmatodo', 'Bio Mercado'
     address TEXT,
     location GEOGRAPHY(POINT, 4326),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 5. PRODUCTS
@@ -49,7 +51,7 @@ CREATE TABLE products (
     category VARCHAR(50), -- 'Grocery', 'Pharmacy'
     image_url TEXT,
     data_source VARCHAR(20) DEFAULT 'USER', -- 'OFF' or 'USER'
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 6. PRICE LOGS
@@ -59,9 +61,9 @@ CREATE TABLE price_logs (
     product_barcode VARCHAR(20) REFERENCES products(barcode),
     store_id UUID REFERENCES stores(store_id),
     user_id UUID REFERENCES users(user_id),
-    price DECIMAL(10, 2) NOT NULL,
+    price DECIMAL(18, 8) NOT NULL,
     currency VARCHAR(5) DEFAULT 'USD', -- Always recommend storing as USD
-    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    recorded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 7. SHOPPING LISTS
@@ -70,10 +72,10 @@ CREATE TABLE shopping_lists (
     list_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(user_id),
     name VARCHAR(100) NOT NULL, -- "Monthly Grocery", "BBQ Weekend"
-    budget_limit DECIMAL(10, 2), -- The "Upper limit" $110
+    budget_limit DECIMAL(18, 8), -- The "Upper limit" $110
     currency VARCHAR(5) DEFAULT 'USD',
     status VARCHAR(20) DEFAULT 'ACTIVE', -- 'ACTIVE', 'COMPLETED', 'ARCHIVED'
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 8. LIST ITEMS
@@ -83,8 +85,21 @@ CREATE TABLE list_items (
     list_id UUID REFERENCES shopping_lists(list_id) ON DELETE CASCADE,
     product_barcode VARCHAR(20) REFERENCES products(barcode),
     quantity INTEGER DEFAULT 1,
-    is_purchased BOOLEAN DEFAULT FALSE, -- Checkbox status
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    planned_price DECIMAL(18, 8),
+    is_purchased BOOLEAN DEFAULT FALSE,
+    added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    store_id UUID REFERENCES stores(store_id) ON DELETE SET NULL
+);
+
+-- 9. PASSWORD RESETS
+-- Stores temporary 6-digit codes for password recovery.
+CREATE TABLE password_resets (
+    reset_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    code VARCHAR(6) NOT NULL, -- The 6-digit PIN ('123456')
+    expires_at TIMESTAMPTZ NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- INDEXES & VIEWS
@@ -101,7 +116,7 @@ SELECT
     p.barcode,
     p.name,
     p.image_url,
-    ROUND(AVG(pl.price), 2) as estimated_price_usd,
+    PERCENTILE_CONT(0.6) WITHIN GROUP (ORDER BY pl.price) as estimated_price_usd,
     MAX(pl.price) as highest_price,
     MIN(pl.price) as lowest_price,
     COUNT(pl.log_id) as data_points
@@ -114,17 +129,22 @@ WHERE
 GROUP BY 
     p.barcode, p.name, p.image_url;
 
--- INSERT INTO stores (name, address, location) 
--- VALUES (
---     'Farmatodo Las Chimeneas', 
---     'Av. Bolivar Norte, Valencia', 
---     ST_SetSRID(ST_MakePoint(-68.0053, 10.1989), 4326) -- Longitude first, then Latitude!
--- );
-
--- SELECT name, address 
--- FROM stores 
--- WHERE ST_DWithin(
---     location, 
---     ST_SetSRID(ST_MakePoint(-68.0053, 10.1989), 4326), 
---     1000 -- Distance in meters
--- );
+-- VIEW: PRICE PREDICTION TRENDS
+CREATE OR REPLACE VIEW v_price_predictions AS
+SELECT
+    product_barcode,
+    (
+        (regr_slope(price, EXTRACT(EPOCH FROM recorded_at)) * EXTRACT(EPOCH FROM (NOW() + INTERVAL '1 day'))) 
+        + regr_intercept(price, EXTRACT(EPOCH FROM recorded_at))
+    )::numeric as predicted_price_usd,
+    
+    regr_r2(price, EXTRACT(EPOCH FROM recorded_at)) as reliability_score
+FROM
+    price_logs
+WHERE
+    recorded_at > NOW() - INTERVAL '60 days'
+GROUP BY
+    product_barcode
+HAVING 
+    count(*) > 5;
+-- END
