@@ -4,7 +4,7 @@ import openfoodfacts
 from fastapi.concurrency import run_in_threadpool
 from fastapi import HTTPException
 
-api = openfoodfacts.API(user_agent="ElPrecioJusto/1.0 (destructomax1@gmail.com)")
+api = openfoodfacts.API(user_agent="Centimos/1.0 (destructomax1@gmail.com)")
 
 
 def validate_gtin(gtin: str) -> bool:
